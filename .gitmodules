@@ -1,0 +1,6 @@
+[submodule "SLAM/Stella/stella_vslam"]
+	path = SLAM/Stella/stella_vslam
+	url = https://github.com/stella-cv/stella_vslam.git
+[submodule "SLAM/iridescence"]
+	path = SLAM/iridescence
+	url = https://github.com/koide3/iridescence.git
