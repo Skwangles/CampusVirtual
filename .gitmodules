@@ -1,3 +1,6 @@
 [submodule "3rd/filesystem"]
 	path = SLAM/CampusVirtualInterface/3rd/filesystem
 	url = https://github.com/gulrak/filesystem.git
+[submodule "FileProcessing"]
+	path = FileProcessing
+	url = git@github.com:Skwangles/CampusVirtual-FileProcessing.git
