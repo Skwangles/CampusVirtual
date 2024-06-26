@@ -158,6 +158,8 @@ cd /media/skwangles/KINGSTON/CampusVirtual/FileProcessing/ && g++ ./ProcessFiles
 mkdir -p /media/skwangles/KINGSTON/CampusVirtual/SLAM/CampusVirtualInterface/build
 cd /media/skwangles/KINGSTON/CampusVirtual/SLAM/CampusVirtualInterface/build && cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DUSE_STACK_TRACE_LOGGER=ON .. && make -j4
 
+# Build controller program
+cd /media/skwangles/KINGSTON/CampusVirtual/ && g++ ./runCampusVirtual.cc -o runCampusVirtual -lboost_program_options
 
 echo "Run 'node app.js' in /media/skwangles/KINGSTON/CampusVirtual/socket_viewer to start the socket viewer - before running the CampusVirtualInterface. Make sure the SLAM/equirectangular.yaml file has the right SocketViewer IP address."
 
