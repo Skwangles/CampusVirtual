@@ -56,6 +56,6 @@ System:
   num_grid_rows: 48
 
 SocketPublisher:
-  emitting_interval: 0.1
+  emitting_interval: 0.5
   server_uri: http://localhost:3000/
-  publish_points: true
+  publish_points: false

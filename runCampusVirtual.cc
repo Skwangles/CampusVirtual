@@ -51,14 +51,14 @@ int main(int argc, char** argv) {
         std::string map_out = vm["out"].as<std::string>();
         bool convert_to_graph = vm.count("convertToGraph");
 
-        std::string command = path_to_stella + (use_headless ? "headless_campus_virtual" : "campus_virtual") +
+        std::string command = path_to_stella + (!convert_to_graph && use_headless ? "headless_campus_virtual" : "campus_virtual") +
                               " -c " + path_to_config +
                               " -v " + path_to_fbow +
                               (map_in.empty() ? "" : " --map-db-in " + path_to_maps + map_in) +
-                              " --map-db-out " + campus_virtual_dir + map_out +
+                              " --map-db-out " + path_to_maps + map_out +
                               " --videos " + videos +
                               " --video-dir " + path_to_videos +
-                              " --viewer iridescence_viewer";
+                              (convert_to_graph ? " --viewer socket_publisher --disable-mapping" : " --viewer iridescence_viewer");
         std::cout << "Command: " << command << std::endl;
         system(command.c_str());
 
