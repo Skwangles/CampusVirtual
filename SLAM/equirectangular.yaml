@@ -1,15 +1,15 @@
 # Equirectangular model for RICOH THETA S
 
 Camera:
-  name: "Insta360 ONE X2"
-  setup: "monocular"
-  model: "equirectangular"
+  name: 'Insta360 ONE X2'
+  setup: 'monocular'
+  model: 'equirectangular'
 
   fps: 30.0
   cols: 1920
   rows: 960
 
-  color_order: "RGB"
+  color_order: 'RGB'
 
 # FOV 137.5, circle_of_confusion=0.006, focallen=1.3 (35mm equalivalent: 7mm), hyperfocal distance = 0.15m
 Preprocessing:
@@ -21,14 +21,14 @@ Preprocessing:
     - [0.8, 1.0, 0.7, 1.0]
 
 Feature:
-  name: "default ORB feature extraction setting"
+  name: 'default ORB feature extraction setting'
   scale_factor: 1.2
   num_levels: 8
   ini_fast_threshold: 20
   min_fast_threshold: 7
 
 Mapping:
-  backend: "g2o"
+  backend: 'g2o'
   baseline_dist_thr_ratio: 0.02
   redundant_obs_ratio_thr: 0.95
   num_covisibilities_for_landmark_generation: 20
@@ -36,10 +36,10 @@ Mapping:
   residual_deg_thr: 0.4
 
 Tracking:
-  backend: "g2o"
+  backend: 'g2o'
 
 LoopDetector:
-  backend: "g2o"
+  backend: 'g2o'
   enabled: true
   reject_by_graph_distance: true
   min_distance_on_graph: 50
@@ -51,6 +51,11 @@ GlobalOptimizer:
   thr_neighbor_keyframes: 100
 
 System:
-  map_format: "sqlite3"
+  map_format: 'sqlite3'
   num_grid_cols: 96
   num_grid_rows: 48
+
+SocketPublisher:
+  emitting_interval: 0.1
+  server_uri: http://localhost:3000/
+  publish_points: true
