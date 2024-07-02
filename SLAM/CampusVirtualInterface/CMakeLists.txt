@@ -34,6 +34,10 @@ find_package(pangolin_viewer QUIET)
 if(pangolin_viewer_FOUND)
     message(STATUS "Viewer for examples: PangolinViewer")
 endif()
+find_package(campus_virtual_socket_publisher QUIET)
+if(campus_virtual_socket_publisher_FOUND)
+    message(STATUS "Viewer for Campus Virtual: SocketPublisher")
+endif()
 find_package(socket_publisher QUIET)
 if(socket_publisher_FOUND)
     message(STATUS "Viewer for examples: SocketPublisher")
@@ -77,6 +81,12 @@ foreach(EXECUTABLE_TARGET IN LISTS EXECUTABLE_TARGETS)
         target_compile_definitions(${EXECUTABLE_TARGET} PRIVATE HAVE_SOCKET_PUBLISHER)
         # Link viewer
         target_link_libraries(${EXECUTABLE_TARGET} PRIVATE socket_publisher::socket_publisher)
+    endif()
+    if(campus_virtual_socket_publisher_FOUND)
+        # Set macro flag
+        target_compile_definitions(${EXECUTABLE_TARGET} PRIVATE HAVE_CAMPUS_VIRTUAL_SOCKET_PUBLISHER)
+        # Link viewer
+        target_link_libraries(${EXECUTABLE_TARGET} PRIVATE campus_virtual_socket_publisher::campus_virtual_socket_publisher)
     endif()
     if(iridescence_viewer_FOUND)
         # Set macro flag
