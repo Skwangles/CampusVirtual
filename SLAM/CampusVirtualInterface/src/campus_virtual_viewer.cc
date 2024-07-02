@@ -1,12 +1,4 @@
-#ifdef HAVE_PANGOLIN_VIEWER
-#include "pangolin_viewer/viewer.h"
-#endif
-#ifdef HAVE_IRIDESCENCE_VIEWER
-#include "iridescence_viewer/viewer.h"
-#endif
-#ifdef HAVE_SOCKET_PUBLISHER
-#include "socket_publisher/publisher.h"
-#endif
+#include "campus_virtual_socket_publisher/publisher.h"
 
 #include "stella_vslam/system.h"
 #include "stella_vslam/config.h"
@@ -44,8 +36,8 @@ int send_map_to_socket(const std::shared_ptr<stella_vslam::system>& slam,
 
     // create a viewer object
     // and pass the frame_publisher and the map_publisher
-    std::shared_ptr<socket_publisher::publisher> publisher;
-    publisher = std::make_shared<socket_publisher::publisher>(
+    std::shared_ptr<campus_virtual_socket_publisher::publisher> publisher;
+    publisher = std::make_shared<campus_virtual_socket_publisher::publisher>(
     stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "SocketPublisher"),
     slam,
     slam->get_frame_publisher(),
