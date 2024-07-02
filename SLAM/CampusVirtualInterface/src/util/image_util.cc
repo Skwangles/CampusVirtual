@@ -1,3 +1,5 @@
+#pragma once
+
 #include "image_util.h"
 
 #ifdef _MSC_VER

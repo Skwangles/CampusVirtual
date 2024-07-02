@@ -1,5 +1,4 @@
-#ifndef EXAMPLE_UTIL_IMAGE_UTIL_H
-#define EXAMPLE_UTIL_IMAGE_UTIL_H
+#pragma once
 
 #include <string>
 #include <vector>
@@ -22,5 +21,3 @@ public:
 private:
     std::vector<std::string> img_file_paths_;
 };
-
-#endif // EXAMPLE_UTIL_IMAGE_UTIL_H

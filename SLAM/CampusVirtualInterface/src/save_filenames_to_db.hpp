@@ -1,3 +1,5 @@
+#pragma once
+
 #include "stella_vslam/system.h"
 #include "stella_vslam/config.h"
 #include "stella_vslam/camera/base.h"
