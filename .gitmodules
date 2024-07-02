@@ -4,3 +4,6 @@
 [submodule "SLAM/CampusVirtualInterface/3rd/filesystem"]
 	path = SLAM/CampusVirtualInterface/3rd/filesystem
 	url = https://github.com/gulrak/filesystem.git
+[submodule "CampusVirtual-SocketViewer"]
+	path = CampusVirtual-SocketViewer
+	url = https://github.com/Skwangles/CampusVirtual-SocketViewer.git
