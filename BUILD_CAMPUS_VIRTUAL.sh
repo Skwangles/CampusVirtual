@@ -3,8 +3,8 @@
 git clone --recursive https://github.com/Skwangles/CampusVirtual-SocketViewer.git && cd CampusVirtual-SocketViewer && sudo npm install && cd ..
 # Make sure to run this in a separate terminal before running the CampusVirtualInterface with `node app.js`
 
-git clone --recursive https://github.com/Skwangles/CampusVirtual.git
-cd CampusVirtual
+# git clone --recursive https://github.com/Skwangles/CampusVirtual.git
+# cd CampusVirtual
 
 # Installs MediaSDKTest tool for stitching videos
 sudo dpkg -i FileProcessing/libMediaSDK-dev_2.0-3_amd64_ubuntu18.04.deb
