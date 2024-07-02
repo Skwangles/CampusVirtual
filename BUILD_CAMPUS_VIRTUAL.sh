@@ -1,10 +1,9 @@
 ########## CAMPUS VIRTUAL SPECIFIC CODE ##########
-# Install custom socket_viewer which acts like Google Street View - forked from https://github.com/stella-cv/socket_viewer.git
-git clone --recursive https://github.com/Skwangles/CampusVirtual-SocketViewer.git && cd CampusVirtual-SocketViewer && sudo npm install && cd ..
-# Make sure to run this in a separate terminal before running the CampusVirtualInterface with `node app.js`
+echo "MUST BE RUN IN root CampusVirtual/"
 
-# git clone --recursive https://github.com/Skwangles/CampusVirtual.git
-# cd CampusVirtual
+# Install custom socket_viewer which acts like Google Street View - forked from https://github.com/stella-cv/socket_viewer.git
+cd CampusVirtual-SocketViewer && sudo npm install && cd ..
+# Make sure to run this in a separate terminal before running the CampusVirtualInterface with `node app.js`
 
 # Installs MediaSDKTest tool for stitching videos
 sudo dpkg -i FileProcessing/libMediaSDK-dev_2.0-3_amd64_ubuntu18.04.deb
@@ -13,9 +12,8 @@ sudo dpkg -i FileProcessing/libMediaSDK-dev_2.0-3_amd64_ubuntu18.04.deb
 cd FileProcessing/ && g++ ./ProcessFiles.cpp -o ./ProcessFiles && cd ..
 
 mkdir -p SLAM/CampusVirtualInterface/build
-cd SLAM/CampusVirtualInterface/build && cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DUSE_STACK_TRACE_LOGGER=ON .. && make -j4
+cd SLAM/CampusVirtualInterface/build && cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DUSE_STACK_TRACE_LOGGER=ON .. && make -j4 && cd ../../../
 
-cd ../../../
 # Build controller program
 g++ ./runCampusVirtual.cc -o runCampusVirtual -lboost_program_options
 
