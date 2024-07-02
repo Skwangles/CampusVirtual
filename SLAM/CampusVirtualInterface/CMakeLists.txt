@@ -53,6 +53,9 @@ list(APPEND EXECUTABLE_TARGETS campus_virtual)
 add_executable(headless_campus_virtual src/headless_campus_virtual.cc)
 list(APPEND EXECUTABLE_TARGETS headless_campus_virtual)
 
+add_executable(campus_virtual_viewer src/campus_virtual_viewer.cc)
+list(APPEND EXECUTABLE_TARGETS campus_virtual_viewer)
+
 foreach(EXECUTABLE_TARGET IN LISTS EXECUTABLE_TARGETS)
     # Set output directory for executables
     set_target_properties(${EXECUTABLE_TARGET} PROPERTIES
