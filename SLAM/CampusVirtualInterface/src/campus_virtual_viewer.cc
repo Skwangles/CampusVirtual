@@ -60,7 +60,7 @@ int main(int argc, char* argv[]) {
     popl::OptionParser op("Allowed options");
     auto help = op.add<popl::Switch>("h", "help", "produce help message");
     auto vocab_file_path = op.add<popl::Value<std::string>>("v", "vocab", "vocabulary file path");
-   
+    auto log_level = op.add<popl::Value<std::string>>("", "log-level", "log level", "info");
     auto config_file_path = op.add<popl::Value<std::string>>("c", "config", "config file path");
 
     auto map_db_path_in = op.add<popl::Value<std::string>>("i", "map-db-in", "load a map from this path", "");
@@ -146,7 +146,7 @@ int main(int argc, char* argv[]) {
     if (slam->get_camera()->setup_type_ == stella_vslam::camera::setup_type_t::Monocular) {
         finish_timestamp = send_map_to_socket(slam,
                             cfg,
-                            map_db_path_out->value(),);
+                            map_db_path_out->value());
     }
     else {
         throw std::runtime_error("Invalid setup type: " + slam->get_camera()->get_setup_type_string());
