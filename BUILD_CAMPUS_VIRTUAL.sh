@@ -134,7 +134,8 @@ sudo make install
 
 # When building with support for SocketViewer
 cd ~/lib
-git clone --recursive https://github.com/stella-cv/socket_publisher.git
+# git clone --recursive https://github.com/stella-cv/socket_publisher.git # Original socket_publisher - Only use if using the original socket_viewer
+git clone --recursive https://github.com/Skwangles/socket_publisher.git # Custom socket_publisher which doesn't send current frame
 mkdir -p socket_publisher/build
 cd socket_publisher/build
 cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
@@ -145,7 +146,11 @@ sudo make install
 
 ########## CAMPUS VIRTUAL SPECIFIC CODE ##########
 cd /media/skwangles/KINGSTON/CampusVirtual/
-git clone --recursive https://github.com/stella-cv/socket_viewer.git && cd socket_viewer && sudo npm install --no-bin-links && node app.js &
+
+# git clone --recursive https://github.com/stella-cv/socket_viewer.git # Original socket_viewer - Only use if using the original socket_publisher
+
+# Install custom socket_viewer which acts like Google Street View
+git clone --recursive https://github.com/Skwangles/CampusVirtual-SocketViewer.git && cd socket_viewer && sudo npm install --no-bin-links && node app.js &
 
 
 
