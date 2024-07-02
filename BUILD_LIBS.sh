@@ -134,10 +134,9 @@ sudo make install
 
 # When building with support for SocketViewer
 cd ~/lib
-git clone --recursive https://github.com/Skwangles/socket_publisher.git # Custom socket_publisher which doesn't send current frame, only the map - forked from https://github.com/stella-cv/socket_publisher.git
-mkdir -p socket_publisher/build
-cd socket_publisher/build
+git clone --recursive https://github.com/Skwangles/campus_virtual_socket_publisher.git # Custom socket_publisher which doesn't send current frame, only the map - forked from https://github.com/stella-cv/socket_publisher.git
+mkdir -p campus_virtual_socket_publisher/build
+cd campus_virtual_socket_publisher/build
 cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 make -j
 sudo make install
-
