@@ -4,9 +4,6 @@
 #ifdef HAVE_IRIDESCENCE_VIEWER
 #include "iridescence_viewer/viewer.h"
 #endif
-#ifdef HAVE_SOCKET_PUBLISHER
-#include "socket_publisher/publisher.h"
-#endif
 
 #include "stella_vslam/system.h"
 #include "stella_vslam/config.h"
@@ -103,16 +100,6 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
             std::lock_guard<std::mutex> lock2(mtx_terminate);
             terminate_is_requested = true;
         });
-    }
-#endif
-#ifdef HAVE_SOCKET_PUBLISHER
-    std::shared_ptr<socket_publisher::publisher> publisher;
-    if (viewer_string == "socket_publisher") {
-        publisher = std::make_shared<socket_publisher::publisher>(
-            stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "SocketPublisher"),
-            slam,
-            slam->get_frame_publisher(),
-            slam->get_map_publisher());
     }
 #endif
 
@@ -219,11 +206,6 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                 iridescence_viewer->request_terminate();
 #endif
             }
-            if (viewer_string == "socket_publisher") {
-#ifdef HAVE_SOCKET_PUBLISHER
-                publisher->request_terminate();
-#endif
-            }
         }
     });
 
@@ -236,11 +218,6 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
     if (viewer_string == "iridescence_viewer") {
 #ifdef HAVE_IRIDESCENCE_VIEWER
         iridescence_viewer->run();
-#endif
-    }
-    if (viewer_string == "socket_publisher") {
-#ifdef HAVE_SOCKET_PUBLISHER
-        publisher->run();
 #endif
     }
 
@@ -340,7 +317,6 @@ int main(int argc, char* argv[]) {
     if (viewer->is_set()) {
         viewer_string = viewer->value();
         if (viewer_string != "pangolin_viewer"
-            && viewer_string != "socket_publisher"
             && viewer_string != "iridescence_viewer"
             && viewer_string != "none") {
             std::cerr << "invalid arguments (--viewer)" << std::endl
@@ -364,22 +340,12 @@ int main(int argc, char* argv[]) {
             return EXIT_FAILURE;
         }
 #endif
-#ifndef HAVE_SOCKET_PUBLISHER
-        if (viewer_string == "socket_publisher") {
-            std::cerr << "socket_publisher not linked" << std::endl
-                      << std::endl
-                      << op << std::endl;
-            return EXIT_FAILURE;
-        }
-#endif
     }
     else {
 #ifdef HAVE_IRIDESCENCE_VIEWER
         viewer_string = "iridescence_viewer";
 #elif defined(HAVE_PANGOLIN_VIEWER)
         viewer_string = "pangolin_viewer";
-#elif defined(HAVE_SOCKET_PUBLISHER)
-        viewer_string = "socket_publisher";
 #endif
     }
 
