@@ -1,22 +1,27 @@
 #!/bin/bash
 
-
 # Depends on the Stella VSLAM and CampusVirtualInterfaces already being built
 
 # Build the CampusVirtual control program - OR 
 g++ ./runCampusVirtual.cc -o runCampusVirtual -lboost_program_options
 
+# Short testing media
+# ./runCampusVirtual true ./ short-straight.mp4 --out straight.db --media_dir /media/skwangles/KINGSTON/MEDIA/
+# ./runCampusVirtual true ./ short-turn.mp4  --in straight.db --out straight-turn.db --media_dir /media/skwangles/KINGSTON/MEDIA/
+
+# View it
+./runCampusVirtual true ./ .  --in straight-turn.db --out . --media_dir /media/skwangles/KINGSTON/MEDIA/ --convertToGraph
+
+
+
 # Create Map with G block
-./runCampusVirtual false ./ G-block-smaller.mp4 --in g.db --out test.db --convertToGraph
+# ./runCampusVirtual true ./ G-block-2.mp4,G-block-smaller.mp4 --out g.db --media_dir /media/skwangles/KINGSTON/MEDIA/
 
 # # Add S block
-# ./runCampusVirtual false ./ S-Block-From-G.mp4 --in g.db --out g-s.db
+# ./runCampusVirtual true ./ S-Block-From-G.mp4 --in g.db --out g-s.db --media_dir /media/skwangles/KINGSTON/MEDIA/
 
-# # Add F block & FG
-#  ./runCampusVirtual false ./ FG-F-from-G.mp4 --in g-s.db --out g-s-f-fg.db
+# # # Add F block & FG
+# ./runCampusVirtual true ./ FG-F-from-G.mp4,F-block.mp4 --in g-s.db --out g-s-f-fg.db --media_dir /media/skwangles/KINGSTON/MEDIA/
 
-# # Add second F
-# ./runCampusVirtual false ./ F-block.mp4 --in g-s-f-fg.db --out g-s-f2-fg.db
-
-# # Add E block
-# ./runCampusVirtual false ./ E-block-fast.mp4 --in g-s-f2-fg.db --out g-s-f-fg-e.db
+# # # Add E block
+# ./runCampusVirtual true ./ E-block-fast.mp4 --in g-s-f-fg.db --out g-s-f-fg-e.db --media_dir /media/skwangles/KINGSTON/MEDIA/
