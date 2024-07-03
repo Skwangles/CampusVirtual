@@ -470,7 +470,7 @@ int main(int argc, char* argv[]) {
         }
         std::cout << "Finish Timestamp" << finish_timestamp << std::endl;
 
-        video_timestamps_list.emplace_back(video_file, timestamp, finish_timestamp);
+        video_timestamps_list.emplace_back(video_file_path, timestamp, finish_timestamp);
         
         timestamp = finish_timestamp + 1;
         std::cout << "Map database is saved to " << map_db_path_out->value() << std::endl;
