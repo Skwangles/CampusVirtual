@@ -26,6 +26,7 @@
 namespace fs = ghc::filesystem;
 
 #include "save_filenames_to_db.hpp"
+#include "video_timestamp.hpp"
 
 #ifdef USE_STACK_TRACE_LOGGER
 #include <backward.hpp>
@@ -34,6 +35,11 @@ namespace fs = ghc::filesystem;
 #ifdef USE_GOOGLE_PERFTOOLS
 #include <gperftools/profiler.h>
 #endif
+
+static int db_callback(std::vector<video_timestamp> *data, int argc, char **argv, char **azColName){
+   data->push_back(video_timestamp(argv[0], std::atof(argv[1]), std::atof(argv[2])));
+   return 0;
+}
 
 int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                   const std::shared_ptr<stella_vslam::config>& cfg,
@@ -255,6 +261,8 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
 }
 
 int main(int argc, char* argv[]) {
+    int ret;
+    sqlite3* db = nullptr;
 #ifdef USE_STACK_TRACE_LOGGER
     backward::SignalHandling sh;
 #endif
@@ -367,6 +375,19 @@ int main(int argc, char* argv[]) {
     ProfilerStart("slam.prof");
 #endif
 
+    std::string map_db_in = map_db_path_in->value();
+
+    db = nullptr;
+    ret = sqlite3_open(map_db_in.c_str(), &db);
+    if (ret != SQLITE_OK) {
+        spdlog::error("Failed to open SQL database");
+        return false;
+    }
+
+    std::vector<video_timestamp> video_timestamps_list = load_video_timestamps(db);
+
+    sqlite3_close(db);
+
     std::string video_file_path;
 
     // You cannot get timestamps of images with this input format.
@@ -387,7 +408,7 @@ int main(int argc, char* argv[]) {
     } 
 
 
-    std::string map_db_in = map_db_path_in->value();
+    
 
     for (const auto& video_file : stella_vslam::util::split_string(videos->value(), ',')) {
         if (video_dir->is_set()) {
@@ -449,26 +470,30 @@ int main(int argc, char* argv[]) {
         }
         std::cout << "Finish Timestamp" << finish_timestamp << std::endl;
 
-        
-        
-
-    // Save file to database
-        sqlite3* db = nullptr;
-        int ret = sqlite3_open(map_db_path_out->value().c_str(), &db);
-        if (ret != SQLITE_OK) {
-            spdlog::error("Failed to open SQL database");
-            return false;
-        }
-        
-        save_video_to_db(db, video_file_path, timestamp, finish_timestamp);
-
-        sqlite3_close(db);
+        video_timestamps_list.emplace_back(video_file, timestamp, finish_timestamp);
         
         timestamp = finish_timestamp + 1;
         std::cout << "Map database is saved to " << map_db_path_out->value() << std::endl;
 
         map_db_in = map_db_path_out->value(); // Running in a loop, must build on previous video maps
     }
+
+
+    db = nullptr;
+    ret = sqlite3_open(map_db_path_out->value().c_str(), &db);
+    if (ret != SQLITE_OK) {
+        spdlog::error("Failed to open SQL database");
+        return 1;
+    }
+        
+    for (auto& video_timestamp : video_timestamps_list) {
+        save_video_to_db(db, video_timestamp.name , video_timestamp.start_timestamp, video_timestamp.stop_timestamp);
+        std::cout << "Video: " << video_timestamp.name << " Start: " << video_timestamp.start_timestamp << " End: " << video_timestamp.stop_timestamp << std::endl;
+    }
+
+    sqlite3_close(db);
+    
+
 
 #ifdef USE_GOOGLE_PERFTOOLS
     ProfilerStop();

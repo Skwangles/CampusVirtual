@@ -10,6 +10,7 @@
 #include <chrono>
 #include <fstream>
 #include <numeric>
+#include <string>
 
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/types.hpp>
@@ -22,6 +23,31 @@
 
 #include <ghc/filesystem.hpp>
 namespace fs = ghc::filesystem;
+
+#include "video_timestamp.hpp"
+
+std::vector<video_timestamp> load_video_timestamps(sqlite3* db) {
+    std::vector<video_timestamp> results;
+    sqlite3_stmt* stmt;
+
+    const char* sql = "SELECT name, start_ts, end_ts FROM video_timestamps";
+
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) == SQLITE_OK) {
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            std::string name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+            double start_ts = sqlite3_column_double(stmt, 1);
+            double end_ts = sqlite3_column_double(stmt, 2);
+
+            results.emplace_back(video_timestamp(name, start_ts, end_ts));
+        }
+        sqlite3_finalize(stmt);
+    } else {
+        std::cerr << "Failed to execute query: " << sqlite3_errmsg(db) << std::endl;
+    }
+
+    return results;
+}
+
 
 int save_video_to_db(sqlite3 *db, std::string video_name, double start_timestamp, double end_timestamp){
     

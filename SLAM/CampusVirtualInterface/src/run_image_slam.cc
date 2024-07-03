@@ -29,6 +29,8 @@
 #include <ghc/filesystem.hpp>
 namespace fs = ghc::filesystem;
 
+#include "video_timestamp.hpp"
+
 #ifdef USE_STACK_TRACE_LOGGER
 #include <backward.hpp>
 #endif
