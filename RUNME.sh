@@ -15,17 +15,19 @@ g++ ./runCampusVirtual.cc -o runCampusVirtual -lboost_program_options
 
 
 # Create Map with G block
-./runCampusVirtual true ./ G-block-2.mp4,G-block-smaller.mp4 --out test-g.db --media_dir /media/skwangles/KINGSTON/MEDIA/
+# ./runCampusVirtual true ./ G-block-2.mp4,G-block-smaller.mp4 --out g.db --media_dir /media/skwangles/KINGSTON/MEDIA/
 
-# View it
-# ./runCampusVirtual true ./ .  --in g.db --out . --media_dir /media/skwangles/KINGSTON/MEDIA/ --convertToGraph
+# # View it
+# # ./runCampusVirtual true ./ .  --in g.db --out . --media_dir /media/skwangles/KINGSTON/MEDIA/ --convertToGraph
 
 
-# Add S block
-./runCampusVirtual true ./ S-Block-From-G.mp4 --in g.db --out g-s.db --media_dir /media/skwangles/KINGSTON/MEDIA/
+# # Add S block
+# ./runCampusVirtual true ./ S-Block-From-G.mp4 --in g.db --out g-s.db --media_dir /media/skwangles/KINGSTON/MEDIA/
 
-# # Add F block & FG
-./runCampusVirtual true ./ FG-F-from-G.mp4,F-block.mp4 --in g-s.db --out g-s-f-fg.db --media_dir /media/skwangles/KINGSTON/MEDIA/
+# # # Add F block & FG
+# ./runCampusVirtual true ./ FG-F-from-G.mp4,F-block.mp4 --in g-s.db --out g-s-f-fg.db --media_dir /media/skwangles/KINGSTON/MEDIA/
 
-# # Add E block
-./runCampusVirtual true ./ E-block-fast.mp4 --in g-s-f-fg.db --out g-s-f-fg-e.db --media_dir /media/skwangles/KINGSTON/MEDIA/
+# # # Add E block
+# ./runCampusVirtual true ./ E-block-fast.mp4 --in g-s-f-fg.db --out g-s-f-fg-e.db --media_dir /media/skwangles/KINGSTON/MEDIA/
+
+./runCampusVirtual true ./ . --in g-s-f-fg-e.db --out . --media_dir /media/skwangles/KINGSTON/MEDIA/ --convertToGraph
