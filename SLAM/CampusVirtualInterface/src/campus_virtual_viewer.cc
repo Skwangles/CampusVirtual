@@ -43,7 +43,11 @@ int send_map_to_socket(const std::shared_ptr<stella_vslam::system>& slam,
     slam->get_frame_publisher(),
     slam->get_map_publisher());
 
+    std::cout << "Starting the publisher..." << std::endl;
+    
     publisher->run();
+
+    std::cout << "Publisher finished - Shutting down..." << std::endl;
 
     // shutdown the slam process
     slam->shutdown();
@@ -144,12 +148,13 @@ int main(int argc, char* argv[]) {
     // run tracking
     double finish_timestamp = 0.0;
     if (slam->get_camera()->setup_type_ == stella_vslam::camera::setup_type_t::Monocular) {
+
         finish_timestamp = send_map_to_socket(slam,
                             cfg,
                             map_db_path_out->value());
     }
     else {
-        throw std::runtime_error("Invalid setup type: " + slam->get_camera()->get_setup_type_string());
+        throw std::runtime_error("Invalid setup type - must be Monocular: " + slam->get_camera()->get_setup_type_string());
     }
     std::cout << "Finish Timestamp" << finish_timestamp << std::endl;
 
