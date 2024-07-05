@@ -16,10 +16,10 @@ g++ ./runCampusVirtual.cc -o runCampusVirtual -lboost_program_options
 
 # Create Map with G block
 # ./runCampusVirtual true ./ G-block-2.mp4,G-block-smaller.mp4 --out g.db --media_dir /media/skwangles/KINGSTON/MEDIA/
-# ./runCampusVirtual false ./ G-block-smaller.mp4 --out g-1.db --media_dir /media/skwangles/KINGSTON/MEDIA/
+./runCampusVirtual false ./ G-block-2.mp4 --out g-large-dist.db --media_dir /media/skwangles/KINGSTON/MEDIA/
 
 # # View it
-./runCampusVirtual true ./ .  --in g-1.db --out . --media_dir /media/skwangles/KINGSTON/MEDIA/ --convertToGraph
+# ./runCampusVirtual true ./ .  --in g-1.db --out . --media_dir /media/skwangles/KINGSTON/MEDIA/ --convertToGraph
 
 
 # # Add S block
