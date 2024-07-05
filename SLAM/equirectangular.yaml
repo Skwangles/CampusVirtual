@@ -42,13 +42,18 @@ LoopDetector:
   backend: 'g2o'
   enabled: true
   reject_by_graph_distance: true
-  min_distance_on_graph: 3.5
+  loop_min_distance_on_graph: 50
 
 GraphOptimizer:
   min_num_shared_lms: 200
 
 GlobalOptimizer:
   thr_neighbor_keyframes: 100
+
+KeyframeInserter:
+  # min_distance: 0.1
+  # min_interval: 0.3
+  # wait_for_local_bundle_adjustment: true
 
 System:
   map_format: 'sqlite3'
