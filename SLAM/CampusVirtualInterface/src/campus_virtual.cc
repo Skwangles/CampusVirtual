@@ -53,7 +53,9 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                   const std::string& eval_log_dir,
                   const std::string& map_db_path,
                   const double start_timestamp,
-                  const std::string& viewer_string) {
+                  const std::string& viewer_string,
+                  const std::string& image_output_dir = "pictures/") {
+                  ) {
     // load the mask image
     const cv::Mat mask = mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE);
 
@@ -158,7 +160,10 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
 
             if (!frame.empty() && (num_frame % frame_skip == 0)) {
                 // input the current frame and estimate the camera pose
-                slam->feed_monocular_frame(frame, timestamp, mask);
+                if (slam->feed_monocular_frame_bool(frame, timestamp, mask) && !image_output_dir.empty()){
+                    cv::imwrite(image_output_dir +  std::to_string(timestamp) + ".png", frame);
+                    std::cout << "Keyframe added" << std::endl;
+                }
             }
 
             const auto tp_2 = std::chrono::steady_clock::now();
@@ -463,7 +468,8 @@ int main(int argc, char* argv[]) {
                                 eval_log_dir->value(),
                                 map_db_path_out->value(),
                                 timestamp,
-                                viewer_string);
+                                viewer_string, 
+                                "pictures/");
         }
         else {
             throw std::runtime_error("Invalid setup type: " + slam->get_camera()->get_setup_type_string());
