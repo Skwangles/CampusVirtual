@@ -1,5 +1,5 @@
 [submodule "FileProcessing"]
-	path = FileProcessing
+	path = CampusVirtual-FileProcessing
 	url = git@github.com:Skwangles/CampusVirtual-FileProcessing.git
 [submodule "SLAM/CampusVirtualInterface/3rd/filesystem"]
 	path = SLAM/CampusVirtualInterface/3rd/filesystem
