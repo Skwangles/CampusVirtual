@@ -1,30 +1,32 @@
 # Stella libs - https://stella-cv.readthedocs.io/en/latest/installation.html
-apt update -y
-apt upgrade -y --no-install-recommends
+sudo apt update -y
+sudo apt upgrade -y --no-install-recommends
 # basic dependencies
-apt install -y build-essential pkg-config cmake git wget curl unzip
+sudo apt install -y build-essential pkg-config cmake git wget curl unzip
 # g2o dependencies
-apt install -y libatlas-base-dev libsuitesparse-dev
+sudo apt install -y libatlas-base-dev libsuitesparse-dev
 # OpenCV dependencies
-apt install -y libgtk-3-dev ffmpeg libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libavresample-dev libtbb-dev
+sudo apt install -y libgtk-3-dev ffmpeg libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libavresample-dev libtbb-dev
 # eigen dependencies
-apt install -y gfortran
+sudo apt install -y gfortran
 # backward-cpp dependencies (optional)
-apt install -y binutils-dev
+sudo apt install -y binutils-dev
 # other dependencies
-apt install -y libyaml-cpp-dev libgflags-dev sqlite3 libsqlite3-dev
+sudo apt install -y libyaml-cpp-dev libgflags-dev sqlite3 libsqlite3-dev
+
+sudo apt install libeigen3-dev libspdlog-dev libsuitesparse-dev qtdeclarative5-dev qt5-qmake libqglviewer-dev-qt5
 
 # (if you plan on using IridescenceViewer)
 # Iridescence dependencies
-apt install -y libglm-dev libglfw3-dev libpng-dev libjpeg-dev libeigen3-dev libboost-filesystem-dev libboost-program-options-dev
+sudo apt install -y libglm-dev libglfw3-dev libpng-dev libjpeg-dev libeigen3-dev libboost-filesystem-dev libboost-program-options-dev
 
 # (if you plan on using PangolinViewer)
 # Pangolin dependencies
-apt install -y libglew-dev
+# sudo apt install -y libglew-dev
 
 # (if you plan on using SocketViewer)
 # Protobuf dependencies
-apt install -y autogen autoconf libtool
+sudo apt install -y autogen autoconf libtool
 # Node.js
 # curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash - # OLD VERSION WE DON'T WANT TO USE
 sudo apt install -y nodejs
@@ -52,7 +54,7 @@ sudo apt install libopencv-dev
 cd /tmp
 git clone https://github.com/RainerKuemmerle/g2o.git
 cd g2o
-git checkout 20230223_git
+git checkout 20230806_git
 mkdir build && cd build
 cmake \
     -DCMAKE_BUILD_TYPE=Release \
@@ -60,6 +62,7 @@ cmake \
     -DBUILD_SHARED_LIBS=ON \
     -DBUILD_UNITTESTS=OFF \
     -DG2O_USE_CHOLMOD=OFF \
+    -DG2O_USE_LOGGING=OFF \
     -DG2O_USE_CSPARSE=ON \
     -DG2O_USE_OPENGL=OFF \
     -DG2O_USE_OPENMP=OFF \
@@ -116,7 +119,7 @@ sudo make install
 # Install stella_vslam core library
 mkdir -p ~/lib
 cd ~/lib
-git clone --recursive https://github.com/stella-cv/stella_vslam.git
+git clone --recursive https://github.com/Skwangles/stella_vslam.git
 cd stella_vslam
 mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
@@ -140,3 +143,4 @@ cd campus_virtual_socket_publisher/build
 cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 make -j
 sudo make install
+
