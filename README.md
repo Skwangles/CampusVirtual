@@ -2,7 +2,12 @@ Copyright Prof. David Bainbridge (The University of Waikato) 2024 associated wit
 
 # CampusVirtual
 
-To use
+## Installing
+
+Clone `git clone --recursive https://github.com/Skwangles/CampusVirtual.git`
+Super important that you do it *recursive*, as we have submodules that need cloned for this project to build.
+
+## To use
 
 - Run `BUILD_CAMPUS_VIRTUAL.sh` to setup Stella VSLAM, FileProcessing, and all the required libs
 - Convert your `.insv` and `.insp` files with the FileProcessing tool to mp4s and images
