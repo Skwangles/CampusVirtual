@@ -54,7 +54,7 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                   const std::string& map_db_path,
                   const double start_timestamp,
                   const std::string& viewer_string,
-                  const std::string& image_output_dir = "pictures/") {
+                  const std::string& image_output_dir = "pictures/"
                   ) {
     // load the mask image
     const cv::Mat mask = mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE);
