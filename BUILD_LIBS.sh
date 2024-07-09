@@ -19,6 +19,7 @@ sudo apt install libeigen3-dev libspdlog-dev libsuitesparse-dev qtdeclarative5-d
 # (if you plan on using IridescenceViewer)
 # Iridescence dependencies
 sudo apt install -y libglm-dev libglfw3-dev libpng-dev libjpeg-dev libeigen3-dev libboost-filesystem-dev libboost-program-options-dev
+# (Or build eigen from source if still not found)
 
 # (if you plan on using PangolinViewer)
 # Pangolin dependencies
@@ -28,9 +29,11 @@ sudo apt install -y libglm-dev libglfw3-dev libpng-dev libjpeg-dev libeigen3-dev
 # Protobuf dependencies
 sudo apt install -y autogen autoconf libtool
 # Node.js
-# curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash - # OLD VERSION WE DON'T WANT TO USE
+# curl -sL https://deb.nodesource.com/setup_18.x | sudo -E bash - # OLD VERSION WE DON'T WANT TO USE
 sudo apt install -y nodejs
 sudo apt install -y npm
+
+sudo ldconfig # update lookup library paths - IMPORTANT if 'libxx.so' not found.
 
 # Install Custom FBoW used
 cd /tmp
@@ -56,7 +59,7 @@ git clone https://github.com/RainerKuemmerle/g2o.git
 cd g2o
 git checkout 20230806_git
 mkdir build && cd build
-cmake \
+cmake \ 
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=/usr/local \
     -DBUILD_SHARED_LIBS=ON \
@@ -86,7 +89,7 @@ make -j4 && sudo make install
 
 
 ################# VIEWERS #####################
-# Install Iridescence-viewer
+# Install Iridescence
 cd /tmp
 git clone https://github.com/koide3/iridescence.git
 cd iridescence
@@ -143,4 +146,7 @@ cd campus_virtual_socket_publisher/build
 cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 make -j
 sudo make install
+
+
+sudo ldconfig # update lookup library paths again - IMPORTANT if 'libxx.so' not found.
 
