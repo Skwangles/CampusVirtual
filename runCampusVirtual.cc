@@ -68,6 +68,7 @@ int main(int argc, char** argv) {
                                         (map_in.empty() ? "" : " --map-db-in " + media_dir + "/Maps/" + map_in) +
                                         " --map-db-out " +  media_dir + "/Maps/" + map_out +
                                         " --videos " + videos +
+                                        " --no-sleep " + 
                                         " --video-dir " +  media_dir + "/Video/ " +
                                        (use_headless ? "--viewer none" : " --viewer iridescence_viewer");
         }
