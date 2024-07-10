@@ -162,7 +162,6 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                 // input the current frame and estimate the camera pose
                 if (slam->feed_monocular_frame_bool(frame, timestamp, mask) && !image_output_dir.empty()){
                     cv::imwrite(image_output_dir +  std::to_string(timestamp) + ".png", frame);
-                    std::cout << "Keyframe added" << std::endl;
                 }
             }
 
