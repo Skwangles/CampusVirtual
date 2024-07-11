@@ -128,6 +128,7 @@ mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 make -j4
 sudo make install
+# MAYBE TRY PATCH THE STELLA WITH MY MODIFICATIONS
 
 # When building with support for IridescenceViewer
 cd ~/lib
