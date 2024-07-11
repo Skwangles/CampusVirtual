@@ -125,6 +125,7 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
     double timestamp = start_timestamp;
 
     bool is_not_end = true;
+    int count = 0;
     // run the slam in another thread
     std::thread thread([&]() {
         while (is_not_end) {
@@ -160,9 +161,22 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
 
             if (!frame.empty() && (num_frame % frame_skip == 0)) {
                 // input the current frame and estimate the camera pose
-                if (slam->feed_monocular_frame_bool(frame, timestamp, mask) && !image_output_dir.empty()){
-                    cv::imwrite(image_output_dir +  std::to_string(timestamp) + ".png", frame);
+                // double rounded_timestamp = ((long)(timestamp * 1000.0));
+
+                // std::string formattedTimestamp = std::to_string(timestamp);
+                // size_t found = formattedTimestamp.find('.');
+                // if (found != std::string::npos && found + 4 < formattedTimestamp.size()) {
+                //     formattedTimestamp = formattedTimestamp.substr(0, found);
+                // }       
+
+
+                std::string filepath = image_output_dir + std::to_string(count) + ".png";
+                    
+                
+                if ((slam->feed_monocular_frame_bool(frame, (double)count, mask) && !image_output_dir.empty()) || num_frame == 0 ){
+                    cv::imwrite(filepath, frame);
                 }
+                count++;
             }
 
             const auto tp_2 = std::chrono::steady_clock::now();
