@@ -54,9 +54,6 @@ set(EXECUTABLE_TARGETS "")
 add_executable(campus_virtual src/campus_virtual.cc)
 list(APPEND EXECUTABLE_TARGETS campus_virtual)
 
-add_executable(headless_campus_virtual src/headless_campus_virtual.cc)
-list(APPEND EXECUTABLE_TARGETS headless_campus_virtual)
-
 add_executable(campus_virtual_viewer src/campus_virtual_viewer.cc)
 list(APPEND EXECUTABLE_TARGETS campus_virtual_viewer)
 
