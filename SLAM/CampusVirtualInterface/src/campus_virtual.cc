@@ -9,6 +9,7 @@
 #include "stella_vslam/config.h"
 #include "stella_vslam/camera/base.h"
 #include "stella_vslam/util/yaml.h"
+#include "stella_vslam/publish/map_publisher.h"
 
 #include <iostream>
 #include <chrono>
@@ -125,7 +126,7 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
     double timestamp = start_timestamp;
 
     bool is_not_end = true;
-    int count = 0;
+
     // run the slam in another thread
     std::thread thread([&]() {
         while (is_not_end) {
@@ -159,6 +160,8 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
 
             const auto tp_1 = std::chrono::steady_clock::now();
 
+            
+
             if (!frame.empty() && (num_frame % frame_skip == 0)) {
                 // input the current frame and estimate the camera pose
                 // double rounded_timestamp = ((long)(timestamp * 1000.0));
@@ -169,14 +172,27 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                 //     formattedTimestamp = formattedTimestamp.substr(0, found);
                 // }       
 
+		        bool is_keyframe = slam->feed_monocular_frame_bool(frame, timestamp, mask);
 
-                std::string filepath = image_output_dir + std::to_string(count) + ".png";
+                if (!image_output_dir.empty()) {
+
+                    std::string timestamp_string = std::to_string(timestamp);
+                    size_t found = timestamp_string.find('.');
+                    int precision_plus_one = 6; 
+                    if (found != std::string::npos && found + precision_plus_one < timestamp_string.size()) {
+                        timestamp_string = timestamp_string.substr(0, found + precision_plus_one);
+                    }
                     
-                
-                if ((slam->feed_monocular_frame_bool(frame, (double)count, mask) && !image_output_dir.empty()) || num_frame == 0 ){
+                  std::string filepath = image_output_dir + timestamp_string + ".png";
+
+                if (num_frame == 0){
                     cv::imwrite(filepath, frame);
                 }
-                count++;
+                else if (is_keyframe && !image_output_dir.empty()){
+                    cv::imwrite(filepath, frame);
+                }
+
+                }
             }
 
             const auto tp_2 = std::chrono::steady_clock::now();
@@ -196,6 +212,7 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
 
             timestamp += 1.0 / slam->get_camera()->fps_;
             ++num_frame;
+
 
 #ifdef HAVE_IRIDESCENCE_VIEWER
             // check if the termination of slam system is requested or not
