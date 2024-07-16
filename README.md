@@ -5,13 +5,27 @@ Copyright Prof. David Bainbridge (The University of Waikato) 2024 associated wit
 ## Installing
 
 Clone `git clone --recursive https://github.com/Skwangles/CampusVirtual.git`
-Super important that you do it *recursive*, as we have submodules that need cloned for this project to build.
+Super important that you do it _recursive_, as we have submodules that need cloned for this project to build.
+
+## Required Libs
+
+- Docker - [https://www.docker.com/get-started/](https://www.docker.com/get-started/) - Used for Postgres Database
+
+### Installed by BUILD_LIBS.sh
+
+- OpenCV
+- Stella VSLAM
+- g2o
+- Stella VSlam custom FBoW implementation
+- Iridescence
+- Node JS
 
 ## To use
 
-- Run `BUILD_CAMPUS_VIRTUAL.sh` to setup Stella VSLAM, FileProcessing, and all the required libs
+- Run `BUILD_LIBS.sh` to install Stella VSLAM, OpenCV and all the required libs
+- Run `BUILD_CAMPUS_VIRTUAL.sh` to setup the Campus Virtual Interfaces for Stella VSLAM
 - Convert your `.insv` and `.insp` files with the FileProcessing tool to mp4s and images
-- (If using the GSV style interface) Open the CampusVirtual-SocketViewer in a separate terminal and run `node app.js`
+- (If using the GSV style interface) Make sure Docker is installed, and open the CampusVirtual-SocketViewer in a separate terminal and run `node app.js`
 - Modify `RUNME.sh` to run the controller on the videos you want, or just manually run the `g++ ./runCampusVirtual.cc -o runCampusVirtual -lboost_program_options` to build and then use as desired.
 
 # Modules
