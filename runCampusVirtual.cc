@@ -18,7 +18,8 @@ int main(int argc, char** argv) {
         ("videos", po::value<std::string>()->required(), "Comma-separated ordered videos")
         ("in", po::value<std::string>(), "Input map (*.db)")
         ("out", po::value<std::string>()->required(), "Output map (*.db)")
-        ("convertToGraph", "Convert to graph (optional)");
+        ("convertToGraph", "Convert to graph (optional)")
+        ("convertToPg", "Convert to Postgres (optional)");
 
     po::positional_options_description pos_desc;
     pos_desc.add("headless", 1);
@@ -49,19 +50,23 @@ int main(int argc, char** argv) {
         std::string map_out = vm["out"].as<std::string>();
         std::string media_dir = vm["media_dir"].as<std::string>();
         bool convert_to_graph = vm.count("convertToGraph");
+        bool convert_to_graph = vm.count("convertToPg");
 
 
 
         std::string command;
-        
-        if (convert_to_graph){
+        if (convert_to_pg){
+            command = "pgloader " + media_dir + "/Maps/" + map_in + 
+                " postgresql://test:test@localhost:5432/campusvirtual"; // Based on docker-compose.yml default config
+        }
+        else if (convert_to_graph){
             command = project_dir + path_to_stella + "campus_virtual_viewer" +
                               " -c " + project_dir + path_to_config +
                               " -v " + project_dir + path_to_fbow +
                               (map_in.empty() ? "" : " --map-db-in " + media_dir + "/Maps/" + map_in) +
                               " --map-db-out " +  media_dir + "/Maps/" + map_out;
         }
-        else{
+        else {
             command = project_dir + path_to_stella + "campus_virtual" +
                                         " -c " + project_dir + path_to_config +
                                         " -v " + project_dir + path_to_fbow +
