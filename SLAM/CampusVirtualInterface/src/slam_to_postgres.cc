@@ -18,6 +18,11 @@
 #include <spdlog/spdlog.h>
 #include <popl.hpp>
 
+#include <iostream>
+#include <pqxx/pqxx>
+#include <string>
+
+
 #include <ghc/filesystem.hpp>
 namespace fs = ghc::filesystem;
 
@@ -35,6 +40,21 @@ int send_map_to_socket(const std::shared_ptr<stella_vslam::system>& slam,
                   const std::shared_ptr<stella_vslam::config>& cfg,
                   const std::string& map_db_path, const std::string& postgres_connection_string) {
 
+
+    pqxx::connection c;
+    try {
+        // Connect to the database
+        c("user=test password=test host=127.0.0.1 port=5432 dbname=campusvirtual target_session_attrs=read-write");
+    } catch (const exception &e) {
+        cerr << e.what() << endl;
+        return 1;
+    }
+
+    pqxx::work w(c);
+
+    w.exec("CREATE TABLE IF NOT EXISTS node(video_id integer, group_id integer, pose_cw integer[16]");
+
+    w.commit();
 
     std::forward_list<map_segment::map_keyframe*> allocated_keyframes;
 
