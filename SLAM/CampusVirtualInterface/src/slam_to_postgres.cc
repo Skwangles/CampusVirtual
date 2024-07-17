@@ -112,6 +112,12 @@ void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
             continue;
         }
 
+        auto spanning_children = keyfrm->graph_node_->get_spanning_children();
+        if (spanning_children.empty()){
+            continue; // Prune unclean edges by ignoring deadend keyframes
+        }
+
+
         const auto id = keyfrm->id_;
         const auto pose = keyfrm->get_pose_cw();
 
@@ -134,16 +140,14 @@ void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
             continue;
         }
 
-        const unsigned int keyfrm_id = keyfrm->id_;
-
-         // Spanning tree
-        auto spanning_parent = keyfrm->graph_node_->get_spanning_parent();
-        if (spanning_parent) {
-            txn.exec_params("INSERT INTO edges (keyframe_id0, keyframe_id1, is_direct) VALUES ($1, $2, true) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
-                            keyfrm_id, spanning_parent->id_);
+        auto spanning_children = keyfrm->graph_node_->get_spanning_children();
+        if (spanning_children.empty()){
+            continue; // Prune unclean edges by ignoring deadend keyframes
         }
 
-        auto spanning_children = keyfrm->graph_node_->get_spanning_children();
+
+        const unsigned int keyfrm_id = keyfrm->id_;
+
         if (!spanning_children.empty()) {
             for (const auto& child : spanning_children) {
                 if (!child || child->will_be_erased()) {
@@ -154,6 +158,15 @@ void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
             }
         }
 
+
+         // Spanning tree
+        auto spanning_parent = keyfrm->graph_node_->get_spanning_parent();
+        if (spanning_parent) {
+            txn.exec_params("INSERT INTO edges (keyframe_id0, keyframe_id1, is_direct) VALUES ($1, $2, true) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
+                            keyfrm_id, spanning_parent->id_);
+        }
+
+        
 
         // Covisibility graph
         const auto covisibilities = keyfrm->graph_node_->get_covisibilities_over_min_num_shared_lms(100);
@@ -168,6 +181,8 @@ void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
         }
 
     }
+
+    txn.commit();
  
 }
 
