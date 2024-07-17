@@ -3,13 +3,20 @@
 #include "stella_vslam/system.h"
 #include "stella_vslam/config.h"
 #include "stella_vslam/camera/base.h"
-#include "stella_vslam/publisher/map_publisher.h"
+#include "stella_vslam/publish/map_publisher.h"
 #include "stella_vslam/util/yaml.h"
+#include "stella_vslam/data/keyframe.h"
+// #include "stella_vslam/data/keyframe.h"
 
 #include <iostream>
 #include <chrono>
 #include <fstream>
 #include <numeric>
+#include <pqxx/pqxx> 
+#include <memory>
+#include <vector>
+#include <unordered_map>
+#include <forward_list>
 
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/types.hpp>
@@ -36,86 +43,92 @@ namespace fs = ghc::filesystem;
 #include <gperftools/profiler.h>
 #endif
 
-int send_map_to_socket(const std::shared_ptr<stella_vslam::system>& slam,
-                  const std::shared_ptr<stella_vslam::config>& cfg,
-                  const std::string& map_db_path, const std::string& postgres_connection_string) {
+// Function to create necessary tables in PostgreSQL
+void create_tables_if_not_exist(pqxx::connection& conn) {
+    pqxx::work txn(conn);
 
+    txn.exec(R"(
+        CREATE TABLE IF NOT EXISTS nodes (
+            id SERIAL PRIMARY KEY,
+            keyframe_id INTEGER UNIQUE NOT NULL,
+            pose DOUBLE PRECISION[] NOT NULL
+        );
+    )");
 
-    pqxx::connection c;
-    try {
-        // Connect to the database
-        c("user=test password=test host=127.0.0.1 port=5432 dbname=campusvirtual target_session_attrs=read-write");
-    } catch (const exception &e) {
-        cerr << e.what() << endl;
-        return 1;
+    txn.exec(R"(
+        CREATE TABLE IF NOT EXISTS edges (
+            id SERIAL PRIMARY KEY,
+            keyframe_id0 INTEGER NOT NULL,
+            keyframe_id1 INTEGER NOT NULL,
+            is_direct BOOLEAN DEFAULT false,
+            FOREIGN KEY (keyframe_id0) REFERENCES nodes(keyframe_id),
+            FOREIGN KEY (keyframe_id1) REFERENCES nodes(keyframe_id),
+            CONSTRAINT unique_edge UNIQUE (keyframe_id0, keyframe_id1)
+        );
+    )");
+
+    txn.exec("TRUNCATE TABLE nodes, edges RESTART IDENTITY;");
+        
+    // Commit the transaction
+    txn.commit();
+}
+
+std::string vector_to_pg_array(std::vector<double>& mat) {
+    std::stringstream ss;
+    bool is_first = true;
+    ss << "{";
+    for(const double& d : mat) {
+        if (!is_first){
+            ss << ",";
+        }
+        is_first = false;
+
+        ss << d;
     }
+    ss << "}";
+    return ss.str();
+}
 
-    pqxx::work w(c);
+void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
+                       const std::shared_ptr<stella_vslam::config>& cfg,
+                       const std::string& map_db_path,
+                       const std::string& postgres_connection_string) {
 
-    w.exec("CREATE TABLE IF NOT EXISTS node(video_id integer, group_id integer, pose_cw integer[16]");
+    // Connect to the PostgreSQL database
+    pqxx::connection conn(postgres_connection_string);
+    
+    // Create necessary tables if they don't exist
+    create_tables_if_not_exist(conn);
 
-    w.commit();
+    pqxx::work txn(conn);
 
-    std::forward_list<map_segment::map_keyframe*> allocated_keyframes;
-
-    // 1. keyframe registration
-
+    // 1. Keyframe registration
     int64 count = 0;
-    std::vector<std::shared_ptr<stella_vslam::data::keyframe>> keyfrms = slam->get_map_publisher()->get_keyframes();
+    std::vector<std::shared_ptr<stella_vslam::data::keyframe>> keyfrms;
+    slam->get_map_publisher()->get_keyframes(keyfrms);
 
-    std::unordered_map<unsigned int, double> next_keyframe_hash_map;
     for (const auto& keyfrm : keyfrms) {
         if (!keyfrm || keyfrm->will_be_erased()) {
             continue;
         }
 
-        if (count > max_number_of_keyframes_per_socket_message) {zzz
-                continue;
-        }
-
         const auto id = keyfrm->id_;
         const auto pose = keyfrm->get_pose_cw();
-        const auto pose_hash = get_mat_hash(pose); // get zipped code (likely hash)
 
-       
-
-        next_keyframe_hash_map[id] = pose_hash;
-
-        // check whether the "point" has already been send.
-        // and remove it from "keyframe_zip".
-        if (keyframe_hash_map_->count(id) != 0) {
-            if (keyframe_hash_map_->at(id) == pose_hash){
-                keyframe_hash_map_->erase(id);
-                continue;
-            }
-            keyframe_hash_map_->erase(id);
-        }
-
-        
-
-        auto keyfrm_obj = map.add_keyframes();
-        keyfrm_obj->set_id(keyfrm->id_);
-        map_segment::map_Mat44* pose_obj = new map_segment::map_Mat44();
+        // Insert keyframe into the database
+        std::vector<double> pose_vec;
         for (int i = 0; i < 16; i++) {
             int ir = i / 4;
             int il = i % 4;
-            pose_obj->add_pose(pose(ir, il));
+            pose_vec.push_back(pose(ir, il));
         }
-        keyfrm_obj->set_allocated_pose(pose_obj);
-        allocated_keyframes.push_front(keyfrm_obj);
+        txn.exec_params("INSERT INTO nodes (keyframe_id, pose) VALUES ($1, $2) ON CONFLICT (keyframe_id) DO UPDATE SET pose = EXCLUDED.pose",
+                        id, vector_to_pg_array(pose_vec));
+
         count++;
     }
-    // add removed keyframes.
-    for (const auto& itr : *keyframe_hash_map_) {
-        const auto id = itr.first;
 
-        auto keyfrm_obj = map.add_keyframes();
-        keyfrm_obj->set_id(id);
-    }
-
-    *keyframe_hash_map_ = next_keyframe_hash_map;
-
-    // 2. graph registration
+    // 2. Graph registration
     for (const auto& keyfrm : keyfrms) {
         if (!keyfrm || keyfrm->will_be_erased()) {
             continue;
@@ -123,106 +136,41 @@ int send_map_to_socket(const std::shared_ptr<stella_vslam::system>& slam,
 
         const unsigned int keyfrm_id = keyfrm->id_;
 
-        // covisibility graph
+         // Spanning tree
+        auto spanning_parent = keyfrm->graph_node_->get_spanning_parent();
+        if (spanning_parent) {
+            txn.exec_params("INSERT INTO edges (keyframe_id0, keyframe_id1, is_direct) VALUES ($1, $2, true) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
+                            keyfrm_id, spanning_parent->id_);
+        }
+
+        auto spanning_children = keyfrm->graph_node_->get_spanning_children();
+        if (!spanning_children.empty()) {
+            for (const auto& child : spanning_children) {
+                if (!child || child->will_be_erased()) {
+                    continue;
+                }
+                txn.exec_params("INSERT INTO edges (keyframe_id0, keyframe_id1, is_direct) VALUES ($1, $2, true) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
+                                keyfrm_id, child->id_);
+            }
+        }
+
+
+        // Covisibility graph
         const auto covisibilities = keyfrm->graph_node_->get_covisibilities_over_min_num_shared_lms(100);
         if (!covisibilities.empty()) {
             for (const auto& covisibility : covisibilities) {
                 if (!covisibility || covisibility->will_be_erased()) {
                     continue;
                 }
-                if (covisibility->id_ < keyfrm_id) {
-                    continue;
-                }
-                const auto edge_obj = map.add_edges();
-                edge_obj->set_id0(keyfrm_id);
-                edge_obj->set_id1(covisibility->id_);
+                txn.exec_params("INSERT INTO edges (keyframe_id0, keyframe_id1, is_direct) VALUES ($1, $2, false) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
+                                keyfrm_id, covisibility->id_);
             }
         }
 
-        // spanning tree
-        auto spanning_parent = keyfrm->graph_node_->get_spanning_parent();
-        if (spanning_parent) {
-            const auto edge_obj = map.add_edges();
-            edge_obj->set_id0(keyfrm_id);
-            edge_obj->set_id1(spanning_parent->id_);
-        }
-
-        // loop edges
-        const auto loop_edges = keyfrm->graph_node_->get_loop_edges();
-        for (const auto& loop_edge : loop_edges) {
-            if (!loop_edge) {
-                continue;
-            }
-            if (loop_edge->id_ < keyfrm_id) {
-                continue;
-            }
-            const auto edge_obj = map.add_edges();
-            edge_obj->set_id0(keyfrm_id);
-            edge_obj->set_id1(loop_edge->id_);
-        }
     }
-
-    // 3. landmark registration
-
-    std::unordered_map<unsigned int, double> next_point_hash_map;
-    for (const auto& landmark : all_landmarks) {
-        if (!landmark || landmark->will_be_erased()) {
-            continue;
-        }
-
-        const auto id = landmark->id_;
-        const auto pos = landmark->get_pos_in_world();
-        const auto zip = get_vec_hash(pos);
-
-        // point exists on next_point_zip.
-        next_point_hash_map[id] = zip;
-
-        // remove point from point_zip.
-        if (point_hash_map_->count(id) != 0) {
-            if (point_hash_map_->at(id) == zip) {
-                point_hash_map_->erase(id);
-                continue;
-            }
-            point_hash_map_->erase(id);
-        }
-        const unsigned int rgb[] = {0, 0, 0};
-
-        // add to protocol buffers
-        auto landmark_obj = map.add_landmarks();
-        landmark_obj->set_id(id);
-        for (int i = 0; i < 3; i++) {
-            landmark_obj->add_coords(pos[i]);
-        }
-        for (int i = 0; i < 3; i++) {
-            landmark_obj->add_color(rgb[i]);
-        }
-    }
-    // removed points are remaining in "point_zips".
-    for (const auto& itr : *point_hash_map_) {
-        const auto id = itr.first;
-
-        auto landmark_obj = map.add_landmarks();
-        landmark_obj->set_id(id);
-    }
-    *point_hash_map_ = next_point_hash_map;
-
-    // 4. local landmark registration
-
-    for (const auto& landmark : local_landmarks) {
-        map.add_local_landmarks(landmark->id_);
-    }
-
-
-    std::string buffer;
-    map.SerializeToString(&buffer);
-
-    for (const auto keyfrm_obj : allocated_keyframes) {
-        keyfrm_obj->clear_pose();
-    }
-
-    const auto* cstr = reinterpret_cast<const unsigned char*>(buffer.c_str());
-    return base64_encode(cstr, buffer.length());
+ 
 }
+
 
 int main(int argc, char* argv[]) {
 #ifdef USE_STACK_TRACE_LOGGER
@@ -284,9 +232,6 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-#ifdef USE_GOOGLE_PERFTOOLS
-    ProfilerStart("slam.prof");
-#endif
 
     std::string map_db_in = map_db_path_in->value();
 
@@ -315,11 +260,9 @@ int main(int argc, char* argv[]) {
     slam->disable_mapping_module();
 
 
-    convert_to_pg(slam, cfg, map_db_path_out->value(), postgres_connection->value());
+    convert_to_pg(slam, cfg, map_db_path_in->value(), postgres_connection->value());
 
-#ifdef USE_GOOGLE_PERFTOOLS
-    ProfilerStop();
-#endif
+    slam->shutdown();
 
     return 0;
 }
