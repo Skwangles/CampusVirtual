@@ -1,6 +1,4 @@
-import createConnectionPool, { sql } from '@databases/pg'
-import tables from '@databases/pg-typed'
-import DatabaseSchema from './__generated__'
+import Pool  from 'pg-pool'
 
 const dbConfig = {
   user: 'test',
@@ -10,13 +8,6 @@ const dbConfig = {
   port: 5432,
 }
 
-export { sql }
-
-const db = createConnectionPool(dbConfig)
+const db = new Pool(dbConfig)
 export default db
 
-// You can list whatever tables you actually have here:
-export const { keyframes, video_timestamps, associations, nodes, edges } =
-  tables<DatabaseSchema>({
-    databaseSchema: require('./__generated__/schema.json'),
-  })
