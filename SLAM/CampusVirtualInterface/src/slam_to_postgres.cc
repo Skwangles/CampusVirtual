@@ -50,6 +50,7 @@ void create_tables_if_not_exist(pqxx::connection& conn) {
     txn.exec(R"(
         CREATE TABLE IF NOT EXISTS nodes (
             id SERIAL PRIMARY KEY,
+            ts NUMERIC NOT NULL,
             keyframe_id INTEGER UNIQUE NOT NULL,
             pose DOUBLE PRECISION[] NOT NULL
         );
@@ -112,13 +113,9 @@ void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
             continue;
         }
 
-        auto spanning_children = keyfrm->graph_node_->get_spanning_children();
-        if (spanning_children.empty()){
-            continue; // Prune unclean edges by ignoring deadend keyframes
-        }
-
-
         const auto id = keyfrm->id_;
+        const auto ts = keyfrm->timestamp_;
+        std::cout << std::to_string(ts) << std::endl;
         const auto pose = keyfrm->get_pose_cw();
 
         // Insert keyframe into the database
@@ -128,26 +125,17 @@ void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
             int il = i % 4;
             pose_vec.push_back(pose(ir, il));
         }
-        txn.exec_params("INSERT INTO nodes (keyframe_id, pose) VALUES ($1, $2) ON CONFLICT (keyframe_id) DO UPDATE SET pose = EXCLUDED.pose",
-                        id, vector_to_pg_array(pose_vec));
-
-        count++;
+        txn.exec_params("INSERT INTO nodes (keyframe_id, ts, pose) VALUES ($1, $2, $3) ON CONFLICT (keyframe_id) DO UPDATE SET ts = EXCLUDED.ts , pose = EXCLUDED.pose",
+                        id, ts, vector_to_pg_array(pose_vec));
     }
 
-    // 2. Graph registration
     for (const auto& keyfrm : keyfrms) {
-        if (!keyfrm || keyfrm->will_be_erased()) {
-            continue;
-        }
-
-        auto spanning_children = keyfrm->graph_node_->get_spanning_children();
-        if (spanning_children.empty()){
-            continue; // Prune unclean edges by ignoring deadend keyframes
-        }
-
+            if (!keyfrm || keyfrm->will_be_erased()) {
+                continue;
+            }
 
         const unsigned int keyfrm_id = keyfrm->id_;
-
+        auto spanning_children = keyfrm->graph_node_->get_spanning_children();
         if (!spanning_children.empty()) {
             for (const auto& child : spanning_children) {
                 if (!child || child->will_be_erased()) {
@@ -177,6 +165,17 @@ void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
                 }
                 txn.exec_params("INSERT INTO edges (keyframe_id0, keyframe_id1, is_direct) VALUES ($1, $2, false) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
                                 keyfrm_id, covisibility->id_);
+            }
+        }
+
+        const auto loop_edges = keyfrm->graph_node_->get_loop_edges();
+        if (!loop_edges.empty()) {
+            for (const auto& loop : loop_edges) {
+                if (!loop || loop->will_be_erased()) {
+                    continue;
+                }
+                txn.exec_params("INSERT INTO edges (keyframe_id0, keyframe_id1, is_direct) VALUES ($1, $2, false) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
+                                keyfrm_id, loop->id_);
             }
         }
 
