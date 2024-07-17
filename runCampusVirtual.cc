@@ -50,14 +50,19 @@ int main(int argc, char** argv) {
         std::string map_out = vm["out"].as<std::string>();
         std::string media_dir = vm["media_dir"].as<std::string>();
         bool convert_to_graph = vm.count("convertToGraph");
-        bool convert_to_graph = vm.count("convertToPg");
+        bool convert_to_pg = vm.count("convertToPg");
 
 
 
         std::string command;
         if (convert_to_pg){
-            command = "pgloader " + media_dir + "/Maps/" + map_in + 
-                " postgresql://test:test@localhost:5432/campusvirtual"; // Based on docker-compose.yml default config
+            std::string connection_string = "postgresql://test:test@localhost:5432/campusvirtual";
+            //"pgloader " + media_dir + "/Maps/" + map_in + " " + connection_string + " \n " +
+             command = project_dir + path_to_stella + "slam_to_pg" +
+                              " -c " + project_dir + path_to_config +
+                              " -v " + project_dir + path_to_fbow +
+                              " --map-db-in " + media_dir + "/Maps/" + map_in +
+                              " --db " + connection_string;
         }
         else if (convert_to_graph){
             command = project_dir + path_to_stella + "campus_virtual_viewer" +

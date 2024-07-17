@@ -54,6 +54,9 @@ set(EXECUTABLE_TARGETS "")
 add_executable(campus_virtual src/campus_virtual.cc)
 list(APPEND EXECUTABLE_TARGETS campus_virtual)
 
+add_executable(slam_to_pg src/slam_to_postgres.cc)
+list(APPEND EXECUTABLE_TARGETS slam_to_pg)
+
 add_executable(campus_virtual_viewer src/campus_virtual_viewer.cc)
 list(APPEND EXECUTABLE_TARGETS campus_virtual_viewer)
 
@@ -108,6 +111,7 @@ foreach(EXECUTABLE_TARGET IN LISTS EXECUTABLE_TARGETS)
     target_link_libraries(${EXECUTABLE_TARGET}
                           PRIVATE
                           stella_vslam::stella_vslam
+                          pqxx
                           opencv_imgcodecs
                           opencv_videoio)
 
