@@ -16,7 +16,7 @@ const db = createConnectionPool(dbConfig)
 export default db
 
 // You can list whatever tables you actually have here:
-export const { keyframes, video_timestamps, associations } =
+export const { keyframes, video_timestamps, associations, nodes, edges } =
   tables<DatabaseSchema>({
     databaseSchema: require('./__generated__/schema.json'),
   })
