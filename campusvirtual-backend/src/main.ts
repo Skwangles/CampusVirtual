@@ -1,14 +1,10 @@
 import path from 'path'
-import { fileURLToPath } from 'url'
 import cors from 'cors'
 import express from 'express'
 
-import db, { keyframes, video_timestamps } from './db'
+import db from './db'
 
-const __filename = fileURLToPath(import.meta.url) // get the resolved path to the file
-const __dirname = path.dirname(__filename) // get the name of the directory
-
-const picturesDir = '/home/skwangles/Documents/Honours/CampusVirtual/pictures'
+const picturesDir = '/home/skwangles/Documents/Honours/CampusVirtual/pictures/'
 
 const app = express()
 
@@ -24,47 +20,42 @@ const send_test_image = true
 
 const defaultPose = [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]
 
-app.get('/point/:id/neighbours/:depth', async function (req: { params: { id: any; depth: any } }, res: { json: (arg0: {}) => void }) {
+app.get('/point/:id/neighbours', async function (req: { params: { id: any; depth: any } }, res: { json: (arg0: {}) => void }) {
   const main_point_id = req.params.id
   const neighbours_depth = req.params.depth
   // Fetch from Edges for keyframe_id0 = id and select keyframe_id1 - JOIN keyframe_id1 ON 
 
   const rows = await db.query(`
-    SELECT k.id, k.ts, n.pose, e.is_direct
+    SELECT n.keyframe_id, n.ts, n.pose, e.is_direct
     FROM edges e
     JOIN nodes n ON e.keyframe_id1 = n.keyframe_id
-    JOIN keyframes k ON e.keyframe_id1 = k.id
     WHERE e.keyframe_id0 = $1;
     `, [main_point_id]);
   
-  console.log(rows)
-  res.json(rows)
+  console.log(rows.rows)
+  res.json(rows.rows)
 })
 
 app.get('/point/:id', async function (req: { params: { id: any } }, res: { json: (arg0: any) => void }) {
-  const info = await keyframes(db).findOne({ id: req.params.id })
-
-  const video = await video_timestamps(db).findOne({
-    start_ts: { $lte: info.ts },
-    end_ts: { $gte: info.ts },
-  })
-
   const rows = await db.query(`
-    SELECT k.id, k.ts, n.pose, convert_from(vt.name, 'UTF-8')
+    SELECT n.keyframe_id, n.ts, n.pose
     FROM nodes n
-    JOIN keyframes k ON n.keyframe_id = k.id
-    JOIN video_timestamps vt ON k.ts >= vt.start_ts AND k.ts <= vt.end_ts
     WHERE n.keyframe_id = $1;
     `, [req.params.id]);
 
-  console.log(rows)
-  res.json(rows)
+    //, convert_from(vt.name, 'UTF-8')
+// JOIN video_timestamps vt ON n.ts >= vt.start_ts AND n.ts <= vt.end_ts
+  console.log(rows.rows)
+  res.json(rows.rows[0])
 })
 
-app.get('/image/:id', function (req: { params: { id: any } }, res: { sendFile: (arg0: string) => void }) {
-  const id = req.params.id
+app.get('/image/:ts', function (req: { params: { ts: any } }, res: { sendFile: (arg0: string) => void }) {
+  const ts = req.params.ts
 
-  res.sendFile('../pictures/test.jpg')
+  let [date, ms] = String(ts).split(".")
+
+  res.sendFile(picturesDir + date + "." + ms.slice(0,5) + ".png")
+  // res.sendFile(picturesDir + "test.jpg");
 })
 
 const port = 3001
