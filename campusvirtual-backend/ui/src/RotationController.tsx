@@ -28,6 +28,8 @@ const CameraRotationControls = () => {
 
       camera.rotation.y -= deltaX * controlsRef.current.rotationSpeed;
       // camera.rotation.x -= deltaY * controlsRef.current.rotationSpeed;
+
+      console.log(camera.rotation)
     };
 
     const handleMouseUp = () => {
