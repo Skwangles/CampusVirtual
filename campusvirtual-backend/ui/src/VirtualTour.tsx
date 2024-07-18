@@ -5,10 +5,15 @@ import * as THREE from 'three';
 import axios from 'axios';
 import CameraRotationControls from './RotationController';
 
+const GLOBAL_SCALE = 50
+
 interface HotspotProps {
   position: [number, number, number];
+  rotation: [number, number, number];
   onClick: () => void;
 }
+
+interface HotspotObj {   pose: THREE.Matrix4; position: [number, number, number]; rotation: [number, number, number]; id: string; ts: string }
 
 interface PointData {
   pose: number[];
@@ -23,40 +28,43 @@ interface NeighbourData {
   is_direct: boolean;
 }
 
-const Hotspot: React.FC<HotspotProps> = ({ position, onClick }) => (
-  <mesh position={position} onClick={onClick}>
-    <sphereGeometry args={[0.01, 10, 10]} />
-    <meshBasicMaterial color="red" />
+const Hotspot: React.FC<HotspotProps> = ({ position, onClick, rotation }) => (
+  <mesh position={position} rotation={rotation} onClick={onClick}>
+    <sphereGeometry args={[0.5, 10, 10]} />
+    <meshBasicMaterial wireframe wireframeLinewidth={0.5} color={"blue"} />
   </mesh>
 );
 
 interface SphereWithHotspotsProps {
+  position: THREE.Vector3;
   textureUrl: string;
-  hotspots: { position: [number, number, number]; id: string; ts: string }[];
-  onHotspotClick: (hotspot: { position: [number, number, number]; id: string; ts: string }) => void;
+  hotspots: HotspotObj[];
+  onHotspotClick: (hotspot: HotspotObj) => void;
   rotation: [number, number, number]
 }
 
-const SphereWithHotspots: React.FC<SphereWithHotspotsProps> = ({ textureUrl, hotspots, onHotspotClick, rotation }) => {
+const SphereWithHotspots: React.FC<SphereWithHotspotsProps> = ({ position, textureUrl, hotspots, onHotspotClick, rotation }) => {
   const texture = useLoader(THREE.TextureLoader, textureUrl);
+  // texture.flipY = true;
   
-  return (
+  return ( 
     <group>
-      <mesh rotation={rotation}>
+      <mesh rotation={rotation} position={position}> // scale={[-1, 1, 1]}
         <sphereGeometry args={[100, 64, 64]} />
-        <meshBasicMaterial map={texture} side={THREE.DoubleSide} />
+        <meshBasicMaterial map={texture} side={THREE.BackSide} />
       </mesh>
       {hotspots.map((hotspot, index) => (
-        <Hotspot key={index} position={hotspot.position} onClick={() => onHotspotClick(hotspot)} />
+        <Hotspot key={index} position={hotspot.position} rotation={hotspot.rotation} onClick={() => onHotspotClick(hotspot)} />
       ))}
     </group>
   );
 };
 
-const VirtualTourContent: React.FC<{ initialPointId: string, setTarget: any }> = ({ initialPointId, setTarget }) => {
+const VirtualTourContent: React.FC<{ initialPointId: string }> = ({ initialPointId }) => {
   const [currentPoint, setCurrentPoint] = useState<PointData | null>(null);
-  const [hotspots, setHotspots] = useState<{ position: [number, number, number]; id: string; ts: string }[]>([]);
+  const [hotspots, setHotspots] = useState<HotspotObj[]>([]);
   const [currentImage, setCurrentImage] = useState<string | null>(null);
+  const [currentPosition, setCurrentPosition] = useState<THREE.Vector3>(new THREE.Vector3())
   
 
   const [rotation, setRotation] = useState<[number, number, number]>([0, 0, 0]);  // New state for rotation
@@ -71,24 +79,40 @@ const VirtualTourContent: React.FC<{ initialPointId: string, setTarget: any }> =
       const pointResponse = await axios.get<PointData>(`/point/${pointId}`);
       const pointData = pointResponse.data;
 
-      const neighboursResponse = await axios.get<NeighbourData[]>(`/point/${pointId}/neighbours`);
+      const neighboursResponse = await axios.get<NeighbourData[]>(`/point/${pointId}/neighbours/5`);
       const neighboursData = neighboursResponse.data;
 
       setCurrentPoint(pointData);
       setCurrentImage("/image/" + pointData.ts);
       
 
-      setHotspots(neighboursData.map(neighbour => ({
-        position: calculatePositionFromMatrix(neighbour.pose),
+      setHotspots(neighboursData.map(neighbour =>{
+
+
+        const pos = calculatePositionFromMatrix(neighbour.pose)
+        const scaled_pos: [number, number, number] = [pos[0], pos[1], pos[2]]
+
+        const m = new THREE.Matrix4()
+
+        //@ts-ignore
+        m.set(...neighbour.pose)
+
+        return ({
+        position: scaled_pos,
+        rotation: calculateYRotationFromMatrix(neighbour.pose),
+        pose: m,
         id: neighbour.keyframe_id,
         ts: neighbour.ts,
-      })));
+      })
+    
+    }));
 
       const newPosition = calculatePositionFromMatrix(pointData.pose);
+      setCurrentPosition(new THREE.Vector3(...newPosition));
       camera.position.set(newPosition[0], newPosition[1], newPosition[2]);
-      setTarget(new THREE.Vector3(newPosition[0], newPosition[1], newPosition[2] + 0.001))
+      // setTarget(new THREE.Vector3(newPosition[0], newPosition[1], newPosition[2] + 0.001))
 
-      const newRotation = calculateRotationFromMatrix(pointData.pose);  // Calculate rotation
+      const newRotation = calculateYRotationFromMatrix(pointData.pose);  // Calculate rotation
       setRotation(newRotation);
 
       console.log(currentPoint, newRotation, newPosition)
@@ -101,38 +125,38 @@ const VirtualTourContent: React.FC<{ initialPointId: string, setTarget: any }> =
     const m = new THREE.Matrix4();
     //@ts-ignore
     m.set(...matrix);
+    m.invert();
     const position = new THREE.Vector3();
     position.setFromMatrixPosition(m);
-    return [position.x, position.y, position.z];
+    return [position.x * GLOBAL_SCALE, -position.y * GLOBAL_SCALE, position.z * GLOBAL_SCALE];
   };
 
-  const calculateRotationFromMatrix = (matrix: number[]): [number, number, number] => {
+  const calculateYRotationFromMatrix = (matrix: number[]): [number, number, number] => {
     const m = new THREE.Matrix4();
     //@ts-ignore
     m.set(...matrix);
+
     const rotation = new THREE.Euler().setFromRotationMatrix(m);
-    rotation.y += Math.PI / 2;  // Adjust rotation
-    return [rotation.x, rotation.y, rotation.z];
+    return [0, rotation.y, 0];
   };
 
-  const handleHotspotClick = (hotspot: { position: [number, number, number]; id: string; ts: string }) => {
+  const handleHotspotClick = (hotspot: HotspotObj) => {
     fetchPointData(hotspot.id);
   };
 
   return currentImage ? (
-    <SphereWithHotspots textureUrl={currentImage} hotspots={hotspots} onHotspotClick={handleHotspotClick} rotation={rotation} />
+    <SphereWithHotspots position={currentPosition} textureUrl={currentImage} hotspots={hotspots} onHotspotClick={handleHotspotClick} rotation={rotation} />
   ) : null;
 };
 
 const VirtualTour: React.FC = () => {
-  const [_, setTarget] = useState<THREE.Vector3>(new THREE.Vector3());
   return (
-    <div style={{ width: "100vw", height: "100vh" }}>
-    <Canvas camera={{ position: [0, 0, 10], fov: 75 }}>
+    <div style={{ left:"0px", top: "0px", width: "100vw", height: "100vh" }}>
+    <Canvas camera={{ position: [0, 0, 10], fov: 110 }}>
       <gridHelper args={[200, 50]} />
-      {/* <ambientLight intensity={0.5} /> */}
+      <ambientLight intensity={0.5} />
       <CameraRotationControls />
-      <VirtualTourContent initialPointId="2" setTarget={setTarget}/>
+      <VirtualTourContent initialPointId="1"/>
     </Canvas>
     </div>
   );
