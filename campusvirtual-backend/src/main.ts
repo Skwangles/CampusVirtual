@@ -17,7 +17,7 @@ app.get('/', function (req, res) {
   res.sendFile(path.join(__dirname, '../ui/dist', 'index.html'))
 })
 
-const send_test_image = true
+const send_test_image = false
 
 app.get('/point/:id/neighbours/:depth', async function (req, res) {
   const main_point_id = req.params.id
