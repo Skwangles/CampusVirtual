@@ -29,9 +29,9 @@ interface NeighbourData {
 }
 
 const Hotspot: React.FC<HotspotProps> = ({ position, onClick, rotation }) => (
-  <mesh position={position} rotation={rotation} onClick={onClick}>
+  <mesh position={position} rotation={rotation} onClick={onClick} receiveShadow>
     <sphereGeometry args={[0.5, 10, 10]} />
-    <meshBasicMaterial wireframe wireframeLinewidth={0.5} color={"blue"} />
+    <meshStandardMaterial color={"blue"} opacity={0.7} transparent/> // wireframe wireframeLinewidth={0.5}
   </mesh>
 );
 
@@ -45,11 +45,11 @@ interface SphereWithHotspotsProps {
 
 const SphereWithHotspots: React.FC<SphereWithHotspotsProps> = ({ position, textureUrl, hotspots, onHotspotClick, rotation }) => {
   const texture = useLoader(THREE.TextureLoader, textureUrl);
-  // texture.flipY = true;
-  
+
+  rotation[1] += Math.PI /2;
   return ( 
     <group>
-      <mesh rotation={rotation} position={position}> // scale={[-1, 1, 1]}
+      <mesh rotation={rotation} position={position} scale={[-1, 1, 1]}> 
         <sphereGeometry args={[100, 64, 64]} />
         <meshBasicMaterial map={texture} side={THREE.BackSide} />
       </mesh>
@@ -90,16 +90,14 @@ const VirtualTourContent: React.FC<{ initialPointId: string }> = ({ initialPoint
 
 
         const pos = calculatePositionFromMatrix(neighbour.pose)
-        const scaled_pos: [number, number, number] = [pos[0], pos[1], pos[2]]
-
         const m = new THREE.Matrix4()
 
         //@ts-ignore
         m.set(...neighbour.pose)
 
         return ({
-        position: scaled_pos,
-        rotation: calculateYRotationFromMatrix(neighbour.pose),
+        position: pos,
+        rotation: [0, getYRotation(neighbour.pose), 0],
         pose: m,
         id: neighbour.keyframe_id,
         ts: neighbour.ts,
@@ -112,8 +110,8 @@ const VirtualTourContent: React.FC<{ initialPointId: string }> = ({ initialPoint
       camera.position.set(newPosition[0], newPosition[1], newPosition[2]);
       // setTarget(new THREE.Vector3(newPosition[0], newPosition[1], newPosition[2] + 0.001))
 
-      const newRotation = calculateYRotationFromMatrix(pointData.pose);  // Calculate rotation
-      setRotation(newRotation);
+      const newRotation = -getYRotation(pointData.pose);  // Calculate rotation
+      setRotation([0, newRotation, 0]);
 
       console.log(currentPoint, newRotation, newPosition)
     } catch (error) {
@@ -128,17 +126,24 @@ const VirtualTourContent: React.FC<{ initialPointId: string }> = ({ initialPoint
     m.invert();
     const position = new THREE.Vector3();
     position.setFromMatrixPosition(m);
-    return [position.x * GLOBAL_SCALE, -position.y * GLOBAL_SCALE, position.z * GLOBAL_SCALE];
+    return [-position.x * GLOBAL_SCALE, -position.y * GLOBAL_SCALE, position.z * GLOBAL_SCALE];
   };
 
-  const calculateYRotationFromMatrix = (matrix: number[]): [number, number, number] => {
-    const m = new THREE.Matrix4();
-    //@ts-ignore
-    m.set(...matrix);
+  function getYRotation(matrix) {
+    // Ensure the matrix is 4x4
+    if (matrix.length !== 16) {
+        throw new Error("Invalid matrix size. Expected a 4x4 matrix.");
+    }
 
-    const rotation = new THREE.Euler().setFromRotationMatrix(m);
-    return [0, rotation.y, 0];
-  };
+    // Extract the relevant elements
+    const m11 = matrix[0];
+    const m31 = matrix[8];
+
+    // Calculate the rotation angle around the Y-axis
+    const rotationY = Math.atan2(m31, m11);
+
+    return rotationY; // Rotation in radians
+}
 
   const handleHotspotClick = (hotspot: HotspotObj) => {
     fetchPointData(hotspot.id);
@@ -152,11 +157,18 @@ const VirtualTourContent: React.FC<{ initialPointId: string }> = ({ initialPoint
 const VirtualTour: React.FC = () => {
   return (
     <div style={{ left:"0px", top: "0px", width: "100vw", height: "100vh" }}>
-    <Canvas camera={{ position: [0, 0, 10], fov: 110 }}>
-      <gridHelper args={[200, 50]} />
-      <ambientLight intensity={0.5} />
+    <Canvas camera={{ position: [0, 0, 10], fov: 110 }} shadows>
+    <ambientLight
+        intensity={1}
+      />
+      <directionalLight
+        castShadow
+      />
+      <directionalLight
+        castShadow
+      />
       <CameraRotationControls />
-      <VirtualTourContent initialPointId="1"/>
+      <VirtualTourContent initialPointId="270"/>
     </Canvas>
     </div>
   );
