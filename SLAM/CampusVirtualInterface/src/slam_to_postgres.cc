@@ -18,6 +18,8 @@
 #include <unordered_map>
 #include <forward_list>
 
+#include <stdexcept>
+
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/types.hpp>
 #include <opencv2/imgcodecs.hpp>
@@ -25,7 +27,6 @@
 #include <spdlog/spdlog.h>
 #include <popl.hpp>
 
-#include <iostream>
 #include <pqxx/pqxx>
 #include <string>
 
@@ -97,6 +98,13 @@ void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
 
     // Connect to the PostgreSQL database
     pqxx::connection conn(postgres_connection_string);
+
+    if (!conn.is_open()){
+        std::cout << "Cannot open database" << std::endl;
+        throw std::invalid_argument("Database connection string could not create a connection to the database.");
+    }
+
+    std::cout << "Connected to database" << std::endl;
     
     // Create necessary tables if they don't exist
     create_tables_if_not_exist(conn);
@@ -182,6 +190,8 @@ void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
     }
 
     txn.commit();
+
+    conn.disconnect();
  
 }
 
@@ -200,7 +210,6 @@ int main(int argc, char* argv[]) {
 
     auto map_db_path_in = op.add<popl::Value<std::string>>("i", "map-db-in", "load a map from this path", "");
     auto postgres_connection = op.add<popl::Value<std::string>>("d", "db", "postgres connection string", "postgresql://test:test@localhost:5432/campusvirtual");
-
    
     try {
         op.parse(argc, argv);
