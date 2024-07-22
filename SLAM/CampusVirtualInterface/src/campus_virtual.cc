@@ -171,16 +171,14 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
             
 
             if (!frame.empty() && (num_frame % frame_skip == 0)) {
-   
 		        bool is_keyframe = slam->feed_monocular_frame_bool(frame, timestamp, mask);
 
 
                 if (!image_output_dir.empty()) {
                     // Save image to work on front end
-
                     std::stringstream stream;
                     stream << std::fixed << std::setprecision(5) << timestamp; // Sqlite3 REAL datatype seems only accurate to 5dp, so use 5dp for identifier
-                    std::string timestamp_string = stream.str();
+                    std::string timestamp_string = stream.str();              
                  
                     std::string filepath = image_output_dir + timestamp_string + ".png";
 
