@@ -3,11 +3,11 @@
 # Depends on the Stella VSLAM and CampusVirtualInterfaces already being built
 
 # Build the CampusVirtual control program - OR 
-g++ ./runCampusVirtual.cc -o runCampusVirtual -lboost_program_options
+g++ ./ENTRYPOINT/runCampusVirtual.cc -o runCampusVirtual -lboost_program_options
 
 # # Short testing media
 # ./runCampusVirtual true ./ short-straight.mp4 --out straight.db --media_dir /media/skwangles/KINGSTON/MEDIA/
-# # ./runCampusVirtual true ./ short-turn.mp4  --in straight.db --out straight-turn.db --media_dir /media/skwangles/KINGSTON/MEDIA/
+# ./runCampusVirtual false ./ short-turn.mp4 --out straight-turn.db --media_dir /media/skwangles/KINGSTON/MEDIA/
 
 # # View it
 # ./runCampusVirtual true ./ .  --in straight-turn.db --out . --media_dir /media/skwangles/KINGSTON/MEDIA/ --convertToGraph
@@ -15,11 +15,12 @@ g++ ./runCampusVirtual.cc -o runCampusVirtual -lboost_program_options
 
 
 # Create Map with G block
-# ./runCampusVirtual true ./ G-block-2.mp4,G-block-smaller.mp4 --out g.db --media_dir /media/skwangles/KINGSTON/MEDIA/
-./runCampusVirtual false ./ G-block-2.mp4 --out g-large-dist.db --media_dir /media/skwangles/KINGSTON/MEDIA/
+# ./runCampusVirtual true ./ G-block-2.mp4 --out test-json.db --media_dir /media/skwangles/KINGSTON/MEDIA/ --json_dir /media/skwangles/KINGSTON/MEDIA/JSON/
+# ./runCampusVirtual true ./ G-block-smaller.mp4 --in g-block-test.db --out g.db --media_dir /media/skwangles/KINGSTON/MEDIA/
+
 
 # # View it
-# ./runCampusVirtual true ./ .  --in g-1.db --out . --media_dir /media/skwangles/KINGSTON/MEDIA/ --convertToGraph
+./runCampusVirtual true ./ --videos . --in test-json.db --out . --media_dir /media/skwangles/KINGSTON/MEDIA/ --json_dir . --convertToPg
 
 
 # # Add S block
