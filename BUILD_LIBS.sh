@@ -148,6 +148,10 @@ cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 make -j
 sudo make install
 
+# Installs MediaSDKTest tool for stitching videos
+sudo dpkg -i CampusVirtual-FileProcessing/libMediaSDK-dev_2.0-3_amd64_ubuntu18.04.deb
+
+cd PgSocketViewer && sudo npm install && cd ..
 
 sudo ldconfig # update lookup library paths again - IMPORTANT if 'libxx.so' not found.
 
