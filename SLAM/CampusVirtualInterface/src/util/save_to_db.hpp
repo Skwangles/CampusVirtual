@@ -61,7 +61,7 @@ std::vector<timestamp_group> load_timestamp_groups(sqlite3* db) {
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) == SQLITE_OK) {
         while (sqlite3_step(stmt) == SQLITE_ROW) {
             std::string group = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
-            double ts = sqlite3_column_double(stmt, 2);
+            double ts = sqlite3_column_double(stmt, 1);
 
             results.emplace_back(timestamp_group(group, ts));
         }
