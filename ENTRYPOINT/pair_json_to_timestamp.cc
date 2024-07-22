@@ -1,9 +1,12 @@
 #include "sqlite3.h"
 #include <iostream>
 #include <pqxx/pqxx>
-#include <popl.hpp>
+#include <boost/program_options.hpp>
 #include <fstream>
-#include <nlohmann/json.hpp>
+#include "include/json.hpp"  // nlodmann/json library
+
+namespace po = boost::program_options;
+
 
 void create_tables_if_not_exist(pqxx::connection &conn) {
     pqxx::work txn(conn);
@@ -24,39 +27,37 @@ void create_tables_if_not_exist(pqxx::connection &conn) {
 
 int main(int argc, char *argv[]) {
     // create options
-    popl::OptionParser op("Allowed options");
-    auto help = op.add<popl::Switch>("h", "help", "produce help message");
-    auto map_db_path_in = op.add<popl::Value<std::string>>()->required("i", "map-db-in", "load a map from this path", "");
-    auto json_dir = op.add<popl::Value<std::string>>()->required("j", "json_dir", "json_dir", "");
-    auto postgres_connection =
-        op.add<popl::Value<std::string>>()->required("d", "db", "postgres connection string", "postgresql://test:test@localhost:5432/campusvirtual");
+    po::options_description desc("Allowed options");
+    desc.add_options()
+        ("help,h", "produce help message")
+        ("map-db-in,i", po::value<std::string>()->required(), "load a map from this path")
+        ("json_dir,j", po::value<std::string>()->required(), "json_dir")
+        ("db,d", po::value<std::string>()->required(), "postgres connection string");
+
+    po::variables_map vm;
 
     try {
-        op.parse(argc, argv);
+        po::store(po::parse_command_line(argc, argv, desc), vm);
+        po::notify(vm);
     } catch (const std::exception &e) {
         std::cerr << e.what() << std::endl;
-        std::cerr << std::endl;
-        std::cerr << op << std::endl;
+        std::cerr << desc << std::endl;
         return EXIT_FAILURE;
     }
 
-    // check validness of options
-    if (help->is_set()) {
-        std::cerr << op << std::endl;
+    if (vm.count("help")) {
+        std::cerr << desc << std::endl;
         return EXIT_FAILURE;
     }
-    if (!op.unknown_options().empty()) {
-        for (const auto &unknown_option : op.unknown_options()) {
-            std::cerr << "unknown_options: " << unknown_option << std::endl;
-        }
-        std::cerr << op << std::endl;
-        return EXIT_FAILURE;
-    }
+
+    std::string map_db_path_in = vm["map-db-in"].as<std::string>();
+    std::string json_dir = vm["json_dir"].as<std::string>();
+    std::string postgres_connection = vm["db"].as<std::string>();
 
     sqlite3 *db;
     int rc;
 
-    rc = sqlite3_open(map_db_path_in->value().c_str(), &db);
+    rc = sqlite3_open(map_db_path_in.c_str(), &db);
 
     if (rc) {
         std::fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
@@ -65,7 +66,7 @@ int main(int argc, char *argv[]) {
         std::fprintf(stderr, "Opened sqlite3 database successfully\n");
     }
 
-    pqxx::connection conn(postgres_connection->value());
+    pqxx::connection conn(postgres_connection);
 
     if (conn.is_open()) {
         std::cout << "Connected to postgres" << std::endl;
@@ -103,7 +104,7 @@ int main(int argc, char *argv[]) {
             double offset = keyframe_ts - start_ts;
 
             // Open JSON file based on video name
-            std::string json_filename = json_dir->value() + "/" + std::string(video_name) + ".json";
+            std::string json_filename = json_dir + "/" + std::string(video_name) + ".json";
             std::ifstream json_file(json_filename);
             if (!json_file.is_open()) {
                 std::cerr << "Failed to open JSON file: " << json_filename << std::endl;
