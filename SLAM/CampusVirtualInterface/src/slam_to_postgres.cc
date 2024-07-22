@@ -30,6 +30,10 @@
 #include <pqxx/pqxx>
 #include <string>
 
+#include "util/save_to_db.hpp"
+
+#include <sqlite3.h>
+
 
 #include <ghc/filesystem.hpp>
 namespace fs = ghc::filesystem;
@@ -67,7 +71,16 @@ void create_tables_if_not_exist(pqxx::connection& conn) {
         );
     )");
 
-    txn.exec("TRUNCATE TABLE nodes, edges RESTART IDENTITY;");
+    txn.exec(R"(
+        CREATE TABLE IF NOT EXISTS node_locations (
+            id SERIAL PRIMARY KEY,
+            keyframe_id INTEGER UNIQUE NOT NULL,
+            location TEXT,
+            FOREIGN KEY (keyframe_id) REFERENCES nodes(keyframe_id)
+        );
+    )");
+
+    txn.exec("TRUNCATE TABLE node_locations, nodes, edges RESTART IDENTITY;");
         
     // Commit the transaction
     txn.commit();
@@ -87,6 +100,32 @@ std::string vector_to_pg_array(std::vector<double>& mat) {
     }
     ss << "}";
     return ss.str();
+}
+
+void timestamp_groups_to_pg(pqxx::work &txn, const std::string& map_db_path){
+
+
+    sqlite3* db = nullptr;
+    int ret = sqlite3_open(map_db_path.c_str(), &db);
+    if (ret != SQLITE_OK) {
+        spdlog::error("Failed to open SQL database");
+        return;
+    }
+
+    auto node_locations = load_timestamp_groups(db);
+
+    for (const timestamp_group& node_loc : node_locations){
+        pqxx::result res = txn.exec_params("SELECT keyframe_id FROM nodes WHERE ABS(ts - $1) < 0.00001 LIMIT 1", node_loc.timestamp);
+        if (std::size(res) == 0){
+            std::cout << "Could not find a timestamp match for " << node_loc.timestamp << " of group " << node_loc.group << std::endl;
+            continue;
+        }
+        const int id = res[0]["keyframe_id"].as<int>();
+        std::cout << "Paired ts " << node_loc.timestamp << " with keyframe_id " << id << std::endl;
+        txn.exec_params("INSERT INTO node_locations (keyframe_id, location) VALUES ($1, $2)", id, node_loc.group);
+    }
+
+    sqlite3_close(db);
 }
 
 void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
@@ -121,7 +160,6 @@ void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
 
         const auto id = keyfrm->id_;
         const auto ts = keyfrm->timestamp_;
-        std::cout << std::to_string(ts) << std::endl;
         const auto pose = keyfrm->get_pose_cw();
 
         // Insert keyframe into the database
@@ -186,6 +224,10 @@ void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
         }
 
     }
+
+    
+
+    timestamp_groups_to_pg(txn, map_db_path);
 
     txn.commit();
 
