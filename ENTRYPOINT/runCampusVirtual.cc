@@ -18,6 +18,7 @@ int main(int argc, char** argv) {
         ("videos", po::value<std::string>()->required(), "Comma-separated ordered videos")
         ("in", po::value<std::string>(), "Input map (*.db)")
         ("out", po::value<std::string>()->required(), "Output map (*.db)")
+        ("json_dir", po::value<std::string>(), "JSON group-to-timestamp file directory")
         ("convertToGraph", "Convert to graph (optional)")
         ("convertToPg", "Convert to Postgres (optional)");
 
@@ -49,6 +50,7 @@ int main(int argc, char** argv) {
         std::string map_in = vm.count("in") ? vm["in"].as<std::string>() : "";
         std::string map_out = vm["out"].as<std::string>();
         std::string media_dir = vm["media_dir"].as<std::string>();
+        std::string json_dir = vm["json_dir"].as<std::string>();
         bool convert_to_graph = vm.count("convertToGraph");
         bool convert_to_pg = vm.count("convertToPg");
 
@@ -78,9 +80,10 @@ int main(int argc, char** argv) {
                                         (map_in.empty() ? "" : " --map-db-in " + media_dir + "/Maps/" + map_in) +
                                         " --map-db-out " +  media_dir + "/Maps/" + map_out +
                                         " --videos " + videos +
-                                        " --no-sleep " + 
+                                        " --no-sleep " + // Operate faster than real time
                                         " --video-dir " +  media_dir + "/Video/ " +
-                                       (use_headless ? "--viewer none" : " --viewer iridescence_viewer");
+                                        " --json-dir " + json_dir + "/" + // Only required for 'pairing JSON with frames' step
+                                       (use_headless ? " --viewer none" : " --viewer iridescence_viewer");
         }
         
         std::cout << "Command: " << command << std::endl;

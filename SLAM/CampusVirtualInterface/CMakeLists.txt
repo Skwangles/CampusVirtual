@@ -11,6 +11,8 @@ set(filesystem_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/filesystem/include)
 # popl
 set(popl_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/popl/include)
 
+set(nlohman_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/nlohmann/)
+
 set(USE_STACK_TRACE_LOGGER OFF CACHE BOOL "Enable automatic stack trace logger of backward-cpp")
 if(USE_STACK_TRACE_LOGGER)
     find_package(Backward REQUIRED)

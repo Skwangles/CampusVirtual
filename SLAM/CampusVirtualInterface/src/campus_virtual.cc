@@ -9,12 +9,15 @@
 #include "stella_vslam/config.h"
 #include "stella_vslam/camera/base.h"
 #include "stella_vslam/util/yaml.h"
+#include "stella_vslam/util/string.h"
 #include "stella_vslam/publish/map_publisher.h"
 
 #include <iostream>
 #include <chrono>
 #include <fstream>
 #include <numeric>
+#include <iomanip>
+#include <sstream>
 
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/types.hpp>
@@ -22,12 +25,13 @@
 #include <opencv2/videoio.hpp>
 #include <spdlog/spdlog.h>
 #include <popl.hpp>
+#include <nlohmann/json.hpp>
 
 #include <ghc/filesystem.hpp>
 namespace fs = ghc::filesystem;
 
-#include "save_filenames_to_db.hpp"
-#include "video_timestamp.hpp"
+#include "util/save_to_db.hpp"
+#include "util/handle_json.hpp"
 
 #ifdef USE_STACK_TRACE_LOGGER
 #include <backward.hpp>
@@ -42,6 +46,8 @@ static int db_callback(std::vector<video_timestamp> *data, int argc, char **argv
    return 0;
 }
 
+
+
 int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                   const std::shared_ptr<stella_vslam::config>& cfg,
                   const std::string& video_file_path,
@@ -55,6 +61,8 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                   const std::string& map_db_path,
                   const double start_timestamp,
                   const std::string& viewer_string,
+                  nlohmann::json& json_obj,
+                  std::vector<timestamp_group> &timestamp_group_list,
                   const std::string& image_output_dir = "pictures/"
                   ) {
     // load the mask image
@@ -163,35 +171,29 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
             
 
             if (!frame.empty() && (num_frame % frame_skip == 0)) {
-                // input the current frame and estimate the camera pose
-                // double rounded_timestamp = ((long)(timestamp * 1000.0));
-
-                // std::string formattedTimestamp = std::to_string(timestamp);
-                // size_t found = formattedTimestamp.find('.');
-                // if (found != std::string::npos && found + 4 < formattedTimestamp.size()) {
-                //     formattedTimestamp = formattedTimestamp.substr(0, found);
-                // }       
-
+   
 		        bool is_keyframe = slam->feed_monocular_frame_bool(frame, timestamp, mask);
 
+
                 if (!image_output_dir.empty()) {
+                    // Save image to work on front end
 
-                    std::string timestamp_string = std::to_string(timestamp);
-                    size_t found = timestamp_string.find('.');
-                    int precision_plus_one = 6; 
-                    if (found != std::string::npos && found + precision_plus_one < timestamp_string.size()) {
-                        timestamp_string = timestamp_string.substr(0, found + precision_plus_one);
+                    std::stringstream stream;
+                    stream << std::fixed << std::setprecision(5) << timestamp; // Sqlite3 REAL datatype seems only accurate to 5dp, so use 5dp for identifier
+                    std::string timestamp_string = stream.str();
+                 
+                    std::string filepath = image_output_dir + timestamp_string + ".png";
+
+                    if (is_keyframe || num_frame == 0){
+                        cv::imwrite(filepath, frame); 
+                        
+                        if (json_obj != NULL){
+                            double seconds = timestamp - start_timestamp;
+                            std::string group = find_group_from_json(json_obj, seconds);
+                            timestamp_group_list.emplace_back(group, timestamp);
+                        }
+                        
                     }
-                    
-                  std::string filepath = image_output_dir + timestamp_string + ".png";
-
-                if (num_frame == 0){
-                    cv::imwrite(filepath, frame);
-                }
-                else if (is_keyframe && !image_output_dir.empty()){
-                    cv::imwrite(filepath, frame);
-                }
-
                 }
             }
 
@@ -321,7 +323,7 @@ int main(int argc, char* argv[]) {
     auto temporal_mapping = op.add<popl::Switch>("", "temporal-mapping", "enable temporal mapping");
     auto start_timestamp = op.add<popl::Value<double>>("t", "start-timestamp", "timestamp of the start of the very first video (e.g. unique timestamp where the last video ended)");
     auto viewer = op.add<popl::Value<std::string>>("", "viewer", "viewer [iridescence_viewer, pangolin_viewer, socket_publisher, none]");
-
+    auto json_dir = op.add<popl::Value<std::string>>("", "json-dir", "directory containing json files for timestamp-to-group calculations");
     auto videos = op.add<popl::Value<std::string>>("", "videos", "set of comma separated videos files to process (e.g. g-block.mp4,g-block2.mp4)");
     auto video_dir = op.add<popl::Value<std::string>>("", "video-dir", "directory containing video files, if not set must be part of the videos option");
     
@@ -420,6 +422,7 @@ int main(int argc, char* argv[]) {
     }
 
     std::vector<video_timestamp> video_timestamps_list = load_video_timestamps(db);
+    std::vector<timestamp_group> timestamp_group_list = load_timestamp_groups(db);
 
     sqlite3_close(db);
 
@@ -443,7 +446,6 @@ int main(int argc, char* argv[]) {
     } 
 
 
-    
 
     for (const auto& video_file : stella_vslam::util::split_string(videos->value(), ',')) {
         if (video_dir->is_set()) {
@@ -453,6 +455,23 @@ int main(int argc, char* argv[]) {
             video_file_path = video_file;
         }
         std::cout << "Processing video: " << video_file_path << std::endl;
+
+        nlohmann::json json_obj;
+        if (json_dir->is_set()){
+            const auto vid_path = fs::path(video_file_path);
+            const auto video_name = vid_path.stem().string() + ".json";
+
+            json_obj = filename_to_json_obj(video_name, json_dir->value());
+
+            if (json_obj != NULL){
+                std::cout << json_obj["name"] << std::endl;
+                std::cout << json_obj["data"] << std::endl;
+            }
+            else{
+                std::cout << "Failed to open JSON file " << video_name << std::endl;
+            }
+        }
+
 
         // build a slam system
         auto slam = std::make_shared<stella_vslam::system>(cfg, vocab_file_path->value());
@@ -499,7 +518,10 @@ int main(int argc, char* argv[]) {
                                 map_db_path_out->value(),
                                 timestamp,
                                 viewer_string, 
-                                "pictures/");
+                                json_obj, 
+                                timestamp_group_list,
+                                "pictures/"
+                                );
         }
         else {
             throw std::runtime_error("Invalid setup type: " + slam->get_camera()->get_setup_type_string());
@@ -522,6 +544,11 @@ int main(int argc, char* argv[]) {
         return 1;
     }
         
+    for (auto& timestamp_group : timestamp_group_list) {
+        save_timestamp_groups_to_db(db, timestamp_group.group , timestamp_group.timestamp);
+        std::cout << "Group: " << timestamp_group.group << " Timestamp: " << timestamp_group.timestamp << std::endl;
+    }
+
     for (auto& video_timestamp : video_timestamps_list) {
         save_video_to_db(db, video_timestamp.name , video_timestamp.start_timestamp, video_timestamp.stop_timestamp);
         std::cout << "Video: " << video_timestamp.name << " Start: " << video_timestamp.start_timestamp << " End: " << video_timestamp.stop_timestamp << std::endl;

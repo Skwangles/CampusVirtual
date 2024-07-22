@@ -34,8 +34,6 @@
 #include <ghc/filesystem.hpp>
 namespace fs = ghc::filesystem;
 
-#include "save_filenames_to_db.hpp"
-
 #ifdef USE_STACK_TRACE_LOGGER
 #include <backward.hpp>
 #endif
