@@ -70,8 +70,9 @@ app.get('/point/:id/neighbours', async function (req: { params: { id: any; depth
 
 app.get('/point/:id', async function (req: { params: { id: any } }, res: { json: (arg0: any) => void }) {
   const rows = await db.query(`
-    SELECT n.keyframe_id, n.ts, n.pose
+    SELECT n.keyframe_id, n.ts, n.pose, l.location
     FROM nodes n
+    LEFT JOIN node_locations l ON n.keyframe_id = l.keyframe_id
     WHERE n.keyframe_id = $1;
     `, [req.params.id]);
 

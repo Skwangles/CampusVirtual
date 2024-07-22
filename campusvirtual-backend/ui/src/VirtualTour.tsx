@@ -17,8 +17,9 @@ interface HotspotObj {   pose: THREE.Matrix4; position: [number, number, number]
 
 interface PointData {
   pose: number[];
-  ts: string,
-  keyframe_id: number
+  ts: string;
+  keyframe_id: number;
+  location: string;
 }
 
 interface NeighbourData {
@@ -60,8 +61,8 @@ const SphereWithHotspots: React.FC<SphereWithHotspotsProps> = ({ position, textu
   );
 };
 
-const VirtualTourContent: React.FC<{ initialPointId: string }> = ({ initialPointId }) => {
-  const [currentPoint, setCurrentPoint] = useState<PointData | null>(null);
+const VirtualTourContent: React.FC<{ initialPointId: string, currentPoint: any, setCurrentPoint: any }> = ({ initialPointId, currentPoint, setCurrentPoint }) => {
+  
   const [hotspots, setHotspots] = useState<HotspotObj[]>([]);
   const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [currentPosition, setCurrentPosition] = useState<THREE.Vector3>(new THREE.Vector3())
@@ -155,7 +156,10 @@ const VirtualTourContent: React.FC<{ initialPointId: string }> = ({ initialPoint
 };
 
 const VirtualTour: React.FC = () => {
+  const [currentPoint, setCurrentPoint] = useState<PointData | null>(null);
   return (
+    <>
+    <div style={{position: "fixed", bottom: 0, left: 0, background: "black", opacity: 0.6, zIndex: 99 }}>Location: {currentPoint?.location}</div>
     <div style={{ left:"0px", top: "0px", width: "100vw", height: "100vh" }}>
     <Canvas camera={{ position: [0, 0, 10], fov: 110 }} shadows>
     <ambientLight
@@ -168,9 +172,11 @@ const VirtualTour: React.FC = () => {
         castShadow
       />
       <CameraRotationControls />
-      <VirtualTourContent initialPointId="270"/>
+      <VirtualTourContent initialPointId="270" currentPoint={currentPoint} setCurrentPoint={setCurrentPoint}/>
     </Canvas>
     </div>
+    
+    </>
   );
 };
 
