@@ -44,7 +44,13 @@ RunCampusVirtual
 - User friendly interface to use Stella
   - Has a headless and live mapping viewer option (see the map as it is built)
   - Allows you to pass in multiple videos in an order based on a parent directory
+  - Pairs JSON location files to keyframes based on timestamps
+  - Allows converting SLAM to postgres database for viewing
 
+campusvirutal-backend
+
+- React frontend using THREE.js to visualise the graph
+  
 ```
   Allowed options:
   -h [ --help ]         produce help message
