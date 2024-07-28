@@ -17,16 +17,18 @@ nlohmann::json filename_to_json_obj(std::string json_filename, std::string json_
     return json_obj;
 }
 
-std::string find_group_from_json(nlohmann::json &obj, double &timestamp){
-    if (timestamp < 0){
+std::string find_group_from_json(nlohmann::json &obj, double &ms){
+    if (ms < 0){
         return "";
     }
+
+    double seconds = ms/1000;
 
     nlohmann::json timecode_array = obj["data"];
     std::string group;
     for (auto timecode : timecode_array){
         double time = std::stod(timecode["t"].dump());
-        if (time > timestamp ){
+        if (time > seconds){
             return group;
         }
         group = timecode["g"].dump();
