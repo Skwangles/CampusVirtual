@@ -126,6 +126,7 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
         return EXIT_FAILURE;
     }
     video.set(0, start_time);
+
     std::vector<double> track_times;
 
     cv::Mat frame;
@@ -164,7 +165,9 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                 }
             }
 
+            
             is_not_end = video.read(frame);
+            
 
             const auto tp_1 = std::chrono::steady_clock::now();
 
@@ -186,9 +189,13 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                         cv::imwrite(filepath, frame); 
                         
                         if (json_obj != NULL){
-                            double seconds = timestamp - start_timestamp;
-                            std::string group = find_group_from_json(json_obj, seconds);
-                            timestamp_group_list.emplace_back(group, timestamp);
+                            double ms = video.get(cv::CAP_PROP_POS_MSEC);
+                            std::string group = find_group_from_json(json_obj, ms);
+                            timestamp_group_list.emplace_back(group, timestamp, ms);
+                            std::cout << "Group: " << group << std::endl;
+                        }
+                        else{
+                            std::cout << "JSON Obj was null!" << std::endl;
                         }
                         
                     }
@@ -543,8 +550,8 @@ int main(int argc, char* argv[]) {
     }
         
     for (auto& timestamp_group : timestamp_group_list) {
-        save_timestamp_groups_to_db(db, timestamp_group.group , timestamp_group.timestamp);
-        std::cout << "Group: " << timestamp_group.group << " Timestamp: " << timestamp_group.timestamp << std::endl;
+        save_timestamp_groups_to_db(db, timestamp_group.group , timestamp_group.timestamp, timestamp_group.ms);
+        std::cout << "Group: " << timestamp_group.group << " Timestamp: " << timestamp_group.timestamp <<  " Ms: " << timestamp_group.ms << std::endl;
     }
 
     for (auto& video_timestamp : video_timestamps_list) {

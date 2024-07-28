@@ -15,9 +15,10 @@ class timestamp_group {
 public:
     std::string group;
     double timestamp;
+    double ms;
 
-    timestamp_group(std::string group, double timestamp)
-        : group(group), timestamp(timestamp) {}
+    timestamp_group(std::string group, double timestamp, double ms)
+        : group(group), timestamp(timestamp),  ms(ms) {}
 };
 
 class video_timestamp {
@@ -56,14 +57,15 @@ std::vector<timestamp_group> load_timestamp_groups(sqlite3* db) {
     std::vector<timestamp_group> results;
     sqlite3_stmt* stmt;
 
-    const char* sql = "SELECT name, timestamp FROM timestamp_groups";
+    const char* sql = "SELECT name, timestamp, ms FROM timestamp_groups";
 
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) == SQLITE_OK) {
         while (sqlite3_step(stmt) == SQLITE_ROW) {
             std::string group = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
             double ts = sqlite3_column_double(stmt, 1);
+            double ms = sqlite3_column_double(stmt, 2);
 
-            results.emplace_back(timestamp_group(group, ts));
+            results.emplace_back(timestamp_group(group, ts, ms));
         }
         sqlite3_finalize(stmt);
     } else {
@@ -74,11 +76,12 @@ std::vector<timestamp_group> load_timestamp_groups(sqlite3* db) {
 }
 
 
-int save_timestamp_groups_to_db(sqlite3 *db, std::string group, double timestamp){
+int save_timestamp_groups_to_db(sqlite3 *db, std::string group, double timestamp, double ms){
     
     std::vector<std::pair<std::string, std::string>> columns{
         {"name", "BLOB"},
         {"timestamp", "REAL"},
+        {"ms", "NUMERIC"}
         };
 
     int ret = 0;
@@ -88,7 +91,6 @@ int save_timestamp_groups_to_db(sqlite3 *db, std::string group, double timestamp
             stmt_str += ", " + column.first + " " + column.second;
         }
         stmt_str += ");";
-        std::cout << stmt_str << std::endl;
         ret = sqlite3_exec(db, stmt_str.c_str(), nullptr, nullptr, nullptr);
     }
 
@@ -124,8 +126,6 @@ int save_timestamp_groups_to_db(sqlite3 *db, std::string group, double timestamp
             }
         }
         stmt_str += ")";
-
-        std::cout << stmt_str << std::endl;
         ret = sqlite3_prepare_v2(db, stmt_str.c_str(), -1, &stmt, nullptr);
     }
     if (ret != SQLITE_OK) {
@@ -138,6 +138,9 @@ int save_timestamp_groups_to_db(sqlite3 *db, std::string group, double timestamp
     }
     if (ret == SQLITE_OK) {
         ret = sqlite3_bind_double(stmt, 2, timestamp);
+    }
+    if (ret == SQLITE_OK) {
+        ret = sqlite3_bind_double(stmt, 3, ms);
     }
     
     
