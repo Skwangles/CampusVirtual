@@ -163,7 +163,7 @@ const VirtualTourContent: React.FC<{ currentId:any, setCurrentId:any, currentPoi
 const VirtualTour: React.FC = () => {
   const [currentId, setCurrentId] = useState<string>("270");
   const [currentPoint, setCurrentPoint] = useState<PointData>({pose: [], ts:"", keyframe_id:300, location: "" });
-  const [camRotation, setCameraRotation] = useState<number>(0);
+  const [camRotation, setCameraRotation] = useState<any>({ yaw: 0, pitch: 0});
   // New state for rotation
   
   let params = new URLSearchParams(window.location.search)
@@ -174,8 +174,8 @@ const VirtualTour: React.FC = () => {
       setCurrentId(params.get("id") ?? "0");
     }
     
-    if (params.has("rot")){
-      setCameraRotation(Number(params.get("rot")?? 0))
+    if (params.has("yaw") || params.has("pitch")){
+      setCameraRotation({ yaw: Number(params.get("yaw") ?? camRotation["yaw"] ?? 0), pitch: Number(params.get("pitch") ?? camRotation["pitch"] ?? 0)})
     }
 
   }, []);
@@ -183,7 +183,8 @@ const VirtualTour: React.FC = () => {
 
   useEffect(() =>{
     params.set("id", currentId)
-    params.set("rot", camRotation.toFixed(4))
+    params.set("yaw", Number(camRotation["yaw"]).toFixed(4))
+    params.set("pitch", Number(camRotation["pitch"]).toFixed(4))
     history.pushState({}, "", "?" + params.toString())
   }, [currentId])
 
@@ -195,8 +196,8 @@ const VirtualTour: React.FC = () => {
       setCurrentId(params.get("id") ?? "0");
     }
     
-    if (params.has("rot")){
-      setCameraRotation(Number(params.get("rot")?? 0))
+    if (params.has("yaw") || params.has("pitch")){
+      setCameraRotation({ yaw: Number(params.get("yaw") ?? camRotation["yaw"] ?? 0), pitch: Number(params.get("pitch") ?? camRotation["pitch"] ?? 0)})
     }
 
   }
@@ -212,7 +213,7 @@ const VirtualTour: React.FC = () => {
       <directionalLight
         castShadow
       />
-      <CameraRotationControls initialRot={camRotation} setCameraRotation={setCameraRotation} />
+      <CameraRotationControls initCameraRotation={camRotation} setCameraRotation={setCameraRotation} />
       <VirtualTourContent currentId={currentId} setCurrentId={setCurrentId} currentPoint={currentPoint} setCurrentPoint={setCurrentPoint} />
     </Canvas>
     </div>

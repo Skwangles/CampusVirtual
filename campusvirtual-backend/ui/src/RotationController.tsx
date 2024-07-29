@@ -1,21 +1,24 @@
 import { useThree } from "@react-three/fiber";
 import { useRef, useEffect } from "react";
+import { Euler } from "three";
 
-const CameraRotationControls = ({initialRot, setCameraRotation}) => {
+const CameraRotationControls = ({ initCameraRotation, setCameraRotation }) => {
   const { camera, gl } = useThree();
-
-  useEffect(() => {
-    camera.rotation.x = 0;
-    camera.rotation.y = initialRot;
-    camera.rotation.z = 0;
-  }, [])
 
   const controlsRef = useRef({
     isMouseDown: false,
     startX: 0,
     startY: 0,
     rotationSpeed: 0.002,
+    initialPitch: initCameraRotation["pitch"],
+    initialYaw: initCameraRotation["yaw"],
+    euler: new Euler(initCameraRotation["pitch"] ?? 0, initCameraRotation["yaw"] ?? 0, 0, "YXZ"), // Initialize Euler with initial rotation
   });
+
+  useEffect(() => {
+    // Set initial rotation using Euler
+    camera.rotation.copy(controlsRef.current.euler);
+  }, [camera]);
 
   useEffect(() => {
     const handleMouseDown = (event) => {
@@ -40,37 +43,59 @@ const CameraRotationControls = ({initialRot, setCameraRotation}) => {
 
     const handleMouseMove = (event) => {
       if (!controlsRef.current.isMouseDown) return;
+
       const currentX = event.clientX;
       const currentY = event.clientY;
       const deltaX = currentX - controlsRef.current.startX;
-      // const deltaY = currentY - controlsRef.current.startY;
+      const deltaY = currentY - controlsRef.current.startY;
+
       controlsRef.current.startX = currentX;
       controlsRef.current.startY = currentY;
 
-      camera.rotation.y += deltaX * controlsRef.current.rotationSpeed;
-      // camera.rotation.x += deltaY * controlsRef.current.rotationSpeed; // Vertical look
+      // Update Euler rotation
+      controlsRef.current.euler.y += deltaX * controlsRef.current.rotationSpeed;
+      controlsRef.current.euler.x += deltaY * controlsRef.current.rotationSpeed;
 
-      setCameraRotation(camera.rotation.y);
+      // Limit pitch to avoid flipping
+      controlsRef.current.euler.x = Math.max(
+        -Math.PI / 2,
+        Math.min(Math.PI / 2, controlsRef.current.euler.x)
+      );
+
+      camera.rotation.copy(controlsRef.current.euler);
+      setCameraRotation({
+        yaw: controlsRef.current.euler.y,
+        pitch: controlsRef.current.euler.x,
+      });
     };
 
-
     const handleTouchMove = (event) => {
-      if (!controlsRef.current.isMouseDown || event.touches.length !== 1) return;
+      if (!controlsRef.current.isMouseDown || event.touches.length !== 1)
+        return;
 
-      let currentX = event.touches[0].clientX;
-      let currentY = event.touches[0].clientY;
-      
+      const currentX = event.touches[0].clientX;
+      const currentY = event.touches[0].clientY;
       const deltaX = currentX - controlsRef.current.startX;
-      // const deltaY = currentY - controlsRef.current.startY;
+      const deltaY = currentY - controlsRef.current.startY;
 
       controlsRef.current.startX = currentX;
       controlsRef.current.startY = currentY;
 
-      camera.rotation.y += deltaX * controlsRef.current.rotationSpeed;
-      // camera.rotation.x += deltaY * controlsRef.current.rotationSpeed; // Vertical look
-  
-      
-      setCameraRotation(camera.rotation.y);
+      // Update Euler rotation
+      controlsRef.current.euler.y += deltaX * controlsRef.current.rotationSpeed;
+      controlsRef.current.euler.x += deltaY * controlsRef.current.rotationSpeed;
+
+      // Limit pitch to avoid flipping
+      controlsRef.current.euler.x = Math.max(
+        -Math.PI / 2,
+        Math.min(Math.PI / 2, controlsRef.current.euler.x)
+      );
+
+      camera.rotation.copy(controlsRef.current.euler);
+      setCameraRotation({
+        yaw: controlsRef.current.euler.y,
+        pitch: controlsRef.current.euler.x,
+      });
     };
 
     const handleTouchEnd = () => {
