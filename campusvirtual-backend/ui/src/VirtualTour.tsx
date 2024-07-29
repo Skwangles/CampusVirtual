@@ -29,9 +29,12 @@ interface NeighbourData {
   is_direct: boolean;
 }
 
+
+
 const Hotspot: React.FC<HotspotProps> = ({ position, onClick, rotation }) => {
   // const texture = useLoader(THREE.TextureLoader, "/image/lores/" + image_identifier);
-  position[1] -= GLOBAL_SCALE * 0.2
+  const dropHotspotsBelowEyeLevelOffset = 0.2;
+  position[1] -= GLOBAL_SCALE * dropHotspotsBelowEyeLevelOffset
 return (
   <mesh position={position} rotation={rotation} onClick={onClick} receiveShadow>
     <sphereGeometry args={[0.5, 10, 10]} />
