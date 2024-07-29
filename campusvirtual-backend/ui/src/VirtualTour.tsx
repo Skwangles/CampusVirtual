@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState } from 'react';
 import { Canvas, useLoader, useThree } from '@react-three/fiber';
 // import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -31,15 +31,16 @@ interface NeighbourData {
 
 
 
-const Hotspot: React.FC<HotspotProps> = ({ position, onClick, rotation }) => {
+const Hotspot: React.FC<HotspotProps> = ({ position, onClick, rotation}) => {
   // const texture = useLoader(THREE.TextureLoader, "/image/lores/" + image_identifier);
+
   const dropHotspotsBelowEyeLevelOffset = 0.2;
   position[1] -= GLOBAL_SCALE * dropHotspotsBelowEyeLevelOffset
-return (
-  <mesh position={position} rotation={rotation} onClick={onClick} receiveShadow>
-    <sphereGeometry args={[0.5, 10, 10]} />
-    <meshStandardMaterial color={"blue"} opacity={0.95} transparent/> // wireframe wireframeLinewidth={0.5}
-  </mesh>);
+  return (
+    <mesh position={position} rotation={rotation} onClick={onClick} receiveShadow>
+      <sphereGeometry args={[0.5, 10, 10]} />
+      <meshStandardMaterial color={"blue"} opacity={0.95} transparent/> // wireframe wireframeLinewidth={0.5}
+    </mesh>);
 }
 
 interface SphereWithHotspotsProps {
@@ -51,13 +52,27 @@ interface SphereWithHotspotsProps {
 }
 
 const SphereWithHotspots: React.FC<SphereWithHotspotsProps> = ({ position, textureUrl, hotspots, onHotspotClick, rotation }) => {
-  const texture = useLoader(THREE.TextureLoader, textureUrl);
-  rotation[1] += Math.PI /2;
-  return ( 
+  const [lowResTexture, highResTexture] = useLoader(THREE.TextureLoader, [
+    `/image/lowres/${textureUrl}`, // low-resolution texture
+    `/image/hires/${textureUrl}`    // high-resolution texture
+  ]);
+
+  const [currentTexture, setCurrentTexture] = useState(lowResTexture);
+
+  useEffect(() => {
+    // When the high-resolution texture is loaded, switch to it
+    if (highResTexture) {
+      setCurrentTexture(highResTexture);
+    }
+  }, [highResTexture]);
+
+  rotation[1] += Math.PI / 2;
+
+  return (
     <group>
-      <mesh rotation={rotation} position={position} scale={[-1, 1, 1]}> 
+      <mesh rotation={rotation} position={position} scale={[-1, 1, 1]}>
         <sphereGeometry args={[100, 64, 64]} />
-        <meshBasicMaterial map={texture} side={THREE.BackSide} />
+        <meshBasicMaterial map={currentTexture} side={THREE.BackSide} />
       </mesh>
       {hotspots.map((hotspot, index) => (
         <Hotspot key={index} position={hotspot.position} rotation={hotspot.rotation} image_identifier={Number(hotspot.ts).toFixed(5)} onClick={() => onHotspotClick(hotspot)} />
@@ -88,7 +103,7 @@ const VirtualTourContent: React.FC<{ currentId:any, setCurrentId:any, currentPoi
       const neighboursData = neighboursResponse.data;
 
       setCurrentPoint(pointData);
-      setCurrentImage("/image/hires/" + Number(pointData.ts).toFixed(5));
+      setCurrentImage(Number(pointData.ts).toFixed(5));
       
 
       setHotspots(neighboursData.map(neighbour =>{
@@ -206,7 +221,7 @@ const VirtualTour: React.FC = () => {
     <>
     <div style={{position: "fixed", bottom: 0, left: 0, background: "black", opacity: 0.6, zIndex: 99 }}>Location: {currentPoint?.location}</div>
     <div style={{ width: "100vw", height: "100vh" }}>
-    <Canvas camera={{ position: [0, 0, 10], fov: 75}} shadows>
+    <Canvas camera={{ position: [0, 0, 10], fov: 75}} frameloop='demand' shadows>
     <ambientLight
         intensity={0.6}
       />
