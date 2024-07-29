@@ -4,12 +4,12 @@ import { Canvas, useLoader, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import axios from 'axios';
 import CameraRotationControls from './RotationController';
-
 const GLOBAL_SCALE = 50
 
 interface HotspotProps {
   position: [number, number, number];
   rotation: [number, number, number];
+  image_identifier: string;
   onClick: () => void;
 }
 
@@ -29,12 +29,15 @@ interface NeighbourData {
   is_direct: boolean;
 }
 
-const Hotspot: React.FC<HotspotProps> = ({ position, onClick, rotation }) => (
+const Hotspot: React.FC<HotspotProps> = ({ position, onClick, rotation }) => {
+  // const texture = useLoader(THREE.TextureLoader, "/image/lores/" + image_identifier);
+  position[1] -= GLOBAL_SCALE * 0.2
+return (
   <mesh position={position} rotation={rotation} onClick={onClick} receiveShadow>
     <sphereGeometry args={[0.5, 10, 10]} />
-    <meshStandardMaterial color={"blue"} opacity={0.7} transparent/> // wireframe wireframeLinewidth={0.5}
-  </mesh>
-);
+    <meshStandardMaterial color={"blue"} opacity={0.95} transparent/> // wireframe wireframeLinewidth={0.5}
+  </mesh>);
+}
 
 interface SphereWithHotspotsProps {
   position: THREE.Vector3;
@@ -46,7 +49,6 @@ interface SphereWithHotspotsProps {
 
 const SphereWithHotspots: React.FC<SphereWithHotspotsProps> = ({ position, textureUrl, hotspots, onHotspotClick, rotation }) => {
   const texture = useLoader(THREE.TextureLoader, textureUrl);
-
   rotation[1] += Math.PI /2;
   return ( 
     <group>
@@ -55,25 +57,24 @@ const SphereWithHotspots: React.FC<SphereWithHotspotsProps> = ({ position, textu
         <meshBasicMaterial map={texture} side={THREE.BackSide} />
       </mesh>
       {hotspots.map((hotspot, index) => (
-        <Hotspot key={index} position={hotspot.position} rotation={hotspot.rotation} onClick={() => onHotspotClick(hotspot)} />
+        <Hotspot key={index} position={hotspot.position} rotation={hotspot.rotation} image_identifier={Number(hotspot.ts).toFixed(5)} onClick={() => onHotspotClick(hotspot)} />
       ))}
     </group>
   );
 };
 
-const VirtualTourContent: React.FC<{ initialPointId: string, currentPoint: any, setCurrentPoint: any }> = ({ initialPointId, currentPoint, setCurrentPoint }) => {
+const VirtualTourContent: React.FC<{ currentId:any, setCurrentId:any, currentPoint: any, setCurrentPoint: any }> = ({ currentId, setCurrentId, currentPoint, setCurrentPoint }) => {
   
   const [hotspots, setHotspots] = useState<HotspotObj[]>([]);
   const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [currentPosition, setCurrentPosition] = useState<THREE.Vector3>(new THREE.Vector3())
+  const [rotation, setRotation] = useState<[number, number, number]>([0, 0, 0]);  
   
-
-  const [rotation, setRotation] = useState<[number, number, number]>([0, 0, 0]);  // New state for rotation
   const { camera } = useThree();
 
   useEffect(() => {
-    fetchPointData(initialPointId);
-  }, [initialPointId]);
+    fetchPointData(currentId);
+  }, [currentId]);
 
   const fetchPointData = async (pointId: string) => {
     try {
@@ -84,7 +85,7 @@ const VirtualTourContent: React.FC<{ initialPointId: string, currentPoint: any, 
       const neighboursData = neighboursResponse.data;
 
       setCurrentPoint(pointData);
-      setCurrentImage("/image/" + pointData.ts);
+      setCurrentImage("/image/hires/" + Number(pointData.ts).toFixed(5));
       
 
       setHotspots(neighboursData.map(neighbour =>{
@@ -147,7 +148,8 @@ const VirtualTourContent: React.FC<{ initialPointId: string, currentPoint: any, 
 }
 
   const handleHotspotClick = (hotspot: HotspotObj) => {
-    fetchPointData(hotspot.id);
+    setCurrentId(hotspot.id);
+    // fetchPointData(hotspot.id);
   };
 
   return currentImage ? (
@@ -156,26 +158,61 @@ const VirtualTourContent: React.FC<{ initialPointId: string, currentPoint: any, 
 };
 
 const VirtualTour: React.FC = () => {
-  const [currentPoint, setCurrentPoint] = useState<PointData | null>(null);
+  const [currentId, setCurrentId] = useState<string>("270");
+  const [currentPoint, setCurrentPoint] = useState<PointData>({pose: [], ts:"", keyframe_id:300, location: "" });
+  const [camRotation, setCameraRotation] = useState<number>(0);
+  // New state for rotation
+  
+  let params = new URLSearchParams(window.location.search)
+
+
+  useEffect(() => {
+    if (params.has("id")){
+      setCurrentId(params.get("id") ?? "0");
+    }
+    
+    if (params.has("rot")){
+      setCameraRotation(Number(params.get("rot")?? 0))
+    }
+
+  }, []);
+
+
+  useEffect(() =>{
+    params.set("id", currentId)
+    params.set("rot", camRotation.toFixed(4))
+    history.pushState({}, "", "?" + params.toString())
+  }, [currentId])
+
+  window.onpopstate = e =>{
+    console.log(window.history.length)
+
+    params = new URLSearchParams(window.location.search)
+    if (params.has("id")){
+      setCurrentId(params.get("id") ?? "0");
+    }
+    
+    if (params.has("rot")){
+      setCameraRotation(Number(params.get("rot")?? 0))
+    }
+
+  }
+
   return (
     <>
     <div style={{position: "fixed", bottom: 0, left: 0, background: "black", opacity: 0.6, zIndex: 99 }}>Location: {currentPoint?.location}</div>
-    <div style={{ left:"0px", top: "0px", width: "100vw", height: "100vh" }}>
-    <Canvas camera={{ position: [0, 0, 10], fov: 110 }} shadows>
+    <div style={{ width: "100vw", height: "100vh" }}>
+    <Canvas camera={{ position: [0, 0, 10], fov: 75}} shadows>
     <ambientLight
-        intensity={1}
+        intensity={0.6}
       />
       <directionalLight
         castShadow
       />
-      <directionalLight
-        castShadow
-      />
-      <CameraRotationControls />
-      <VirtualTourContent initialPointId="270" currentPoint={currentPoint} setCurrentPoint={setCurrentPoint}/>
+      <CameraRotationControls initialRot={camRotation} setCameraRotation={setCameraRotation} />
+      <VirtualTourContent currentId={currentId} setCurrentId={setCurrentId} currentPoint={currentPoint} setCurrentPoint={setCurrentPoint} />
     </Canvas>
     </div>
-    
     </>
   );
 };
