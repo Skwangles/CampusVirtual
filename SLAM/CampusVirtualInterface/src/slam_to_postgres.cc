@@ -55,7 +55,8 @@ void create_tables_if_not_exist(pqxx::connection& conn) {
             id SERIAL PRIMARY KEY,
             ts NUMERIC NOT NULL,
             keyframe_id INTEGER UNIQUE NOT NULL,
-            pose DOUBLE PRECISION[] NOT NULL
+            pose DOUBLE PRECISION[] NOT NULL,
+            label TEXT DEFAULT NULL
         );
     )");
 
