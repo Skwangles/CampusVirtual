@@ -81,8 +81,9 @@ app.get('/point/:id', async function (req: { params: { id: any } }, res: { json:
   res.json(rows.rows[0])
 })
 
-app.get('/image/:ts', function (req: { params: { ts: any } }, res: { sendFile: (arg0: string) => void }) {
+app.get('/image/:detail/:ts', function (req: { params: { ts: string, detail: string } }, res: { sendFile: (arg0: string) => void }) {
   const ts = req.params.ts
+  // const detail = req.params.detail; // TODO: Add optimisation to send lores or hires as needed
 
 
 
