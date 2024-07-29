@@ -82,10 +82,8 @@ app.get('/point/:id', async function (req: { params: { id: any } }, res: { json:
 })
 
 app.get('/image/:detail/:ts', function (req: { params: { ts: string, detail: string } }, res: { sendFile: (arg0: string) => void }) {
-  const ts = req.params.ts
+  const ts = Number(req.params.ts).toFixed(5);
   // const detail = req.params.detail; // TODO: Add optimisation to send lores or hires as needed
-
-
 
   if (send_test_image){
     res.sendFile(picturesDir + "test.jpg");
@@ -93,18 +91,8 @@ app.get('/image/:detail/:ts', function (req: { params: { ts: string, detail: str
     return;
   }
 
-
-  let [date, ms] = String(ts).split(".")
-
-  // Handle quirk with timestamp saving where last number rounds up 
-  const main_path = picturesDir + date + "." + ms.slice(0,5) + ".png"
-  const rounded_up_path = picturesDir + date + "." + ms.slice(0,4) + (Number(ms[4]) + 1) + ".png"
-
-  if (fs.existsSync(main_path)){
-    res.sendFile(main_path)
-  }
-  else if (fs.existsSync(rounded_up_path)){
-  res.sendFile(rounded_up_path)  
+  if (fs.existsSync(picturesDir + ts + ".png")){
+    res.sendFile(picturesDir + ts + ".png")
   }
   else {
     res.sendFile(picturesDir + "test.jpg")
