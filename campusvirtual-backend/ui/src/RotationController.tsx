@@ -1,8 +1,15 @@
 import { useThree } from "@react-three/fiber";
 import { useRef, useEffect } from "react";
 
-const CameraRotationControls = () => {
+const CameraRotationControls = ({initialRot, setCameraRotation}) => {
   const { camera, gl } = useThree();
+
+  useEffect(() => {
+    camera.rotation.x = 0;
+    camera.rotation.y = initialRot;
+    camera.rotation.z = 0;
+  }, [])
+
   const controlsRef = useRef({
     isMouseDown: false,
     startX: 0,
@@ -15,20 +22,6 @@ const CameraRotationControls = () => {
       controlsRef.current.isMouseDown = true;
       controlsRef.current.startX = event.clientX;
       controlsRef.current.startY = event.clientY;
-    };
-
-    const handleMouseMove = (event) => {
-      if (!controlsRef.current.isMouseDown) return;
-      const currentX = event.clientX;
-      const currentY = event.clientY;
-      const deltaX = currentX - controlsRef.current.startX;
-      // const deltaY = currentY - controlsRef.current.startY;
-      controlsRef.current.startX = currentX;
-      controlsRef.current.startY = currentY;
-
-      camera.rotation.y -= deltaX * controlsRef.current.rotationSpeed;
-      // camera.rotation.x -= deltaY * controlsRef.current.rotationSpeed;
-
     };
 
     const handleMouseUp = () => {
@@ -45,19 +38,39 @@ const CameraRotationControls = () => {
       controlsRef.current.startY = event.touches[0].clientY;
     };
 
-    const handleTouchMove = (event) => {
-      if (!controlsRef.current.isMouseDown || event.touches.length !== 1) return;
-      const currentX = event.touches[0].clientX;
-      const currentY = event.touches[0].clientY;
+    const handleMouseMove = (event) => {
+      if (!controlsRef.current.isMouseDown) return;
+      const currentX = event.clientX;
+      const currentY = event.clientY;
       const deltaX = currentX - controlsRef.current.startX;
       // const deltaY = currentY - controlsRef.current.startY;
       controlsRef.current.startX = currentX;
       controlsRef.current.startY = currentY;
 
-      camera.rotation.y -= deltaX * controlsRef.current.rotationSpeed;
-      // camera.rotation.x -= deltaY * controlsRef.current.rotationSpeed;
+      camera.rotation.y += deltaX * controlsRef.current.rotationSpeed;
+      // camera.rotation.x += deltaY * controlsRef.current.rotationSpeed; // Vertical look
 
-      console.log(camera.rotation);
+      setCameraRotation(camera.rotation.y);
+    };
+
+
+    const handleTouchMove = (event) => {
+      if (!controlsRef.current.isMouseDown || event.touches.length !== 1) return;
+
+      let currentX = event.touches[0].clientX;
+      let currentY = event.touches[0].clientY;
+      
+      const deltaX = currentX - controlsRef.current.startX;
+      // const deltaY = currentY - controlsRef.current.startY;
+
+      controlsRef.current.startX = currentX;
+      controlsRef.current.startY = currentY;
+
+      camera.rotation.y += deltaX * controlsRef.current.rotationSpeed;
+      // camera.rotation.x += deltaY * controlsRef.current.rotationSpeed; // Vertical look
+  
+      
+      setCameraRotation(camera.rotation.y);
     };
 
     const handleTouchEnd = () => {
