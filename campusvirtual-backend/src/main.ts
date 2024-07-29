@@ -4,6 +4,7 @@ import express from 'express'
 import fs from 'fs'
 
 import db from './db'
+import { processImage } from './images'
 
 const picturesDir = '/home/skwangles/Documents/Honours/CampusVirtual/pictures/'
 
@@ -81,9 +82,9 @@ app.get('/point/:id', async function (req: { params: { id: any } }, res: { json:
   res.json(rows.rows[0])
 })
 
-app.get('/image/:detail/:ts', function (req: { params: { ts: string, detail: string } }, res: { sendFile: (arg0: string) => void }) {
+app.get('/image/:detail/:ts', function (req: { params: { ts: string, detail: string } }, res) {
   const ts = Number(req.params.ts).toFixed(5);
-  // const detail = req.params.detail; // TODO: Add optimisation to send lores or hires as needed
+  const detail = req.params.detail; // TODO: Add optimisation to send lores or hires as needed
 
   if (send_test_image){
     res.sendFile(picturesDir + "test.jpg");
@@ -92,7 +93,8 @@ app.get('/image/:detail/:ts', function (req: { params: { ts: string, detail: str
   }
 
   if (fs.existsSync(picturesDir + ts + ".png")){
-    res.sendFile(picturesDir + ts + ".png")
+
+    processImage(res, picturesDir + ts + ".png", detail == "hires" ? -1 : 200)
   }
   else {
     res.sendFile(picturesDir + "test.jpg")
