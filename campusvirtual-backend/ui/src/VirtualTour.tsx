@@ -1,12 +1,12 @@
 import React, {useEffect, useState } from 'react';
-import { Canvas, useLoader, useThree } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 // import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import axios from 'axios';
 import CameraRotationControls from './RotationController';
 const GLOBAL_SCALE = 50
 
-const API_PREFIX = "http://localhost:3001"
+const API_PREFIX = ""
 
 interface HotspotProps {
   position: [number, number, number];
