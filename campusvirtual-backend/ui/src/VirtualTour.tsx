@@ -4,9 +4,10 @@ import { Canvas, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import axios from 'axios';
 import CameraRotationControls from './RotationController';
+
 const GLOBAL_SCALE = 50
 
-const API_PREFIX = ""
+const API_PREFIX = ""; // Use to specify API server different to frontend e.g. localhost:3001
 
 interface HotspotProps {
   position: [number, number, number];
@@ -33,15 +34,19 @@ interface NeighbourData {
 
 
 
-const Hotspot: React.FC<HotspotProps> = ({ position, onClick, rotation}) => {
-  // const texture = useLoader(THREE.TextureLoader, `${API_PREFIX}/image/lores/${image_identifier}`);
+const Hotspot: React.FC<HotspotProps> = ({ position, onClick, rotation, image_identifier}) => {
+  const [texture, setTexture] = useState(new THREE.Texture())
+
+  useEffect(() => {
+    setTexture(new THREE.TextureLoader().load(`${API_PREFIX}/image/thumbnail/${image_identifier}`));
+  }, [image_identifier])
 
   const dropHotspotsBelowEyeLevelOffset = 0.2;
   position[1] -= GLOBAL_SCALE * dropHotspotsBelowEyeLevelOffset
   return (
     <mesh position={position} rotation={rotation} onClick={onClick} receiveShadow>
       <sphereGeometry args={[0.5, 10, 10]} />
-      <meshStandardMaterial color={"blue"} opacity={0.95} transparent/> // wireframe wireframeLinewidth={0.5}
+      <meshStandardMaterial map={texture}/> // wireframe wireframeLinewidth={0.5}
     </mesh>);
 }
 
@@ -127,9 +132,8 @@ const VirtualTourContent: React.FC<{ currentId:any, setCurrentId:any, currentPoi
       const newPosition = calculatePositionFromMatrix(pointData.pose);
       setCurrentPosition(new THREE.Vector3(...newPosition));
       camera.position.set(newPosition[0], newPosition[1], newPosition[2]);
-      // setTarget(new THREE.Vector3(newPosition[0], newPosition[1], newPosition[2] + 0.001))
 
-      const newRotation = -getYRotation(pointData.pose);  // Calculate rotation
+      const newRotation = getYRotation(pointData.pose); 
       setRotation([0, newRotation, 0]);
 
       console.log(currentPoint, newRotation, newPosition)
@@ -161,7 +165,7 @@ const VirtualTourContent: React.FC<{ currentId:any, setCurrentId:any, currentPoi
     // Calculate the rotation angle around the Y-axis
     const rotationY = Math.atan2(m31, m11);
 
-    return rotationY; // Rotation in radians
+    return -rotationY; // Rotation in radians
 }
 
   const handleHotspotClick = (hotspot: HotspotObj) => {
