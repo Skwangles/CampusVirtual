@@ -188,7 +188,7 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                     if (is_keyframe || num_frame == 0){
                         std::vector<int> params; 
                         params.push_back(cv::IMWRITE_JPEG_QUALITY); 
-                        params.push_back(100); 
+                        params.push_back(100); // 0-100 - 100 = highest quality
                         params.push_back(cv::IMWRITE_JPEG_PROGRESSIVE); // Progressive JPGs used for reduced loading times for frontend
                         params.push_back(1); // 1 = true, 0 = false 
                         cv::imwrite(filepath, frame, params); 
