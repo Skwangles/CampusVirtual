@@ -35,18 +35,18 @@ interface NeighbourData {
 
 
 const Hotspot: React.FC<HotspotProps> = ({ position, onClick, rotation, image_identifier}) => {
-  const [texture, setTexture] = useState(new THREE.Texture())
+  // const [texture, setTexture] = useState(new THREE.Texture())
 
-  useEffect(() => {
-    setTexture(new THREE.TextureLoader().load(`${API_PREFIX}/image/thumbnail/${image_identifier}`));
-  }, [image_identifier])
+  // useEffect(() => {
+  //   setTexture(new THREE.TextureLoader().load(`${API_PREFIX}/image/thumbnail/${image_identifier}`));
+  // }, [image_identifier])
 
   const dropHotspotsBelowEyeLevelOffset = 0.2;
   position[1] -= GLOBAL_SCALE * dropHotspotsBelowEyeLevelOffset
   return (
     <mesh position={position} rotation={rotation} onClick={onClick} receiveShadow>
       <sphereGeometry args={[0.5, 10, 10]} />
-      <meshStandardMaterial map={texture}/> // wireframe wireframeLinewidth={0.5}
+      <meshStandardMaterial color={"#E1251B"} /*map={texture}*//> // wireframe wireframeLinewidth={0.5}
     </mesh>);
 }
 
