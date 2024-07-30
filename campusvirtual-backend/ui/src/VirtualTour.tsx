@@ -6,6 +6,8 @@ import axios from 'axios';
 import CameraRotationControls from './RotationController';
 const GLOBAL_SCALE = 50
 
+const API_PREFIX = "http://localhost:3001"
+
 interface HotspotProps {
   position: [number, number, number];
   rotation: [number, number, number];
@@ -32,7 +34,7 @@ interface NeighbourData {
 
 
 const Hotspot: React.FC<HotspotProps> = ({ position, onClick, rotation}) => {
-  // const texture = useLoader(THREE.TextureLoader, "/image/lores/" + image_identifier);
+  // const texture = useLoader(THREE.TextureLoader, `${API_PREFIX}/image/lores/${image_identifier}`);
 
   const dropHotspotsBelowEyeLevelOffset = 0.2;
   position[1] -= GLOBAL_SCALE * dropHotspotsBelowEyeLevelOffset
@@ -52,27 +54,24 @@ interface SphereWithHotspotsProps {
 }
 
 const SphereWithHotspots: React.FC<SphereWithHotspotsProps> = ({ position, textureUrl, hotspots, onHotspotClick, rotation }) => {
-  const [lowResTexture, highResTexture] = useLoader(THREE.TextureLoader, [
-    `/image/lowres/${textureUrl}`, // low-resolution texture
-    `/image/hires/${textureUrl}`    // high-resolution texture
-  ]);
-
-  const [currentTexture, setCurrentTexture] = useState(lowResTexture);
+  const [currentTexture, setCurrentTexture] = useState(new THREE.Texture())
 
   useEffect(() => {
-    // When the high-resolution texture is loaded, switch to it
-    if (highResTexture) {
-      setCurrentTexture(highResTexture);
-    }
-  }, [highResTexture]);
+    setCurrentTexture(new THREE.TextureLoader().load(`${API_PREFIX}/image/lores/${textureUrl}`))
+  
+    new THREE.TextureLoader()
+      .loadAsync(`${API_PREFIX}/image/hires/${textureUrl}`, (progress) => {console.log("Progress", progress)})
+      .then((texture) => setCurrentTexture(texture))
+      .catch((err) => console.log(err));
+  }, [textureUrl])
 
   rotation[1] += Math.PI / 2;
 
   return (
     <group>
       <mesh rotation={rotation} position={position} scale={[-1, 1, 1]}>
-        <sphereGeometry args={[100, 64, 64]} />
-        <meshBasicMaterial map={currentTexture} side={THREE.BackSide} />
+          <sphereGeometry args={[100, 64, 64]} />
+          <meshBasicMaterial map={currentTexture} side={THREE.BackSide} />
       </mesh>
       {hotspots.map((hotspot, index) => (
         <Hotspot key={index} position={hotspot.position} rotation={hotspot.rotation} image_identifier={Number(hotspot.ts).toFixed(5)} onClick={() => onHotspotClick(hotspot)} />
@@ -96,10 +95,10 @@ const VirtualTourContent: React.FC<{ currentId:any, setCurrentId:any, currentPoi
 
   const fetchPointData = async (pointId: string) => {
     try {
-      const pointResponse = await axios.get<PointData>(`/point/${pointId}`);
+      const pointResponse = await axios.get<PointData>(`${API_PREFIX}/point/${pointId}`);
       const pointData = pointResponse.data;
 
-      const neighboursResponse = await axios.get<NeighbourData[]>(`/point/${pointId}/neighbours/5`);
+      const neighboursResponse = await axios.get<NeighbourData[]>(`${API_PREFIX}/point/${pointId}/neighbours/5`);
       const neighboursData = neighboursResponse.data;
 
       setCurrentPoint(pointData);
