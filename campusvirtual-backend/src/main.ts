@@ -85,11 +85,17 @@ app.get('/point/:id', async function (req: { params: { id: any } }, res: { json:
 app.get('/image/:detail/:ts', function (req: { params: { ts: string, detail: string } }, res) {
   const ts = Number(req.params.ts).toFixed(5);
   if (ts === "NaN"){
-    res.status(400).end();
+    res.status(400).send("Image id was not a valid image ID")
     return;
   }
 
+
+
   const detail = req.params.detail; // TODO: Add optimisation to send lores or hires as needed
+  if (detail !== "hires" && detail !== "lores" && detail !== "thumbnail"){
+    res.status(400).send("The image detail must be 'lores', 'thumbnail' or 'hires'");
+  }
+
 
   if (send_test_image){
     res.sendFile(picturesDir + "test.jpg");
@@ -99,7 +105,7 @@ app.get('/image/:detail/:ts', function (req: { params: { ts: string, detail: str
 
   if (fs.existsSync(picturesDir + ts + ".jpg")){
 
-    processImage(res, picturesDir + ts + ".jpg", detail == "hires" ? -1 : 200)
+    processImage(res, picturesDir + ts + ".jpg", detail === "hires" ? -1 : (detail === "lores" ? 200 : 50))
   }
   else {
     res.sendFile(picturesDir + "test.jpg")
