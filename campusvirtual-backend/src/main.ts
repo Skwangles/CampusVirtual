@@ -84,6 +84,11 @@ app.get('/point/:id', async function (req: { params: { id: any } }, res: { json:
 
 app.get('/image/:detail/:ts', function (req: { params: { ts: string, detail: string } }, res) {
   const ts = Number(req.params.ts).toFixed(5);
+  if (ts === "NaN" || !/^-?\d+$/.test(ts)){
+    res.status(400).end();
+    return;
+  }
+
   const detail = req.params.detail; // TODO: Add optimisation to send lores or hires as needed
 
   if (send_test_image){
@@ -92,9 +97,9 @@ app.get('/image/:detail/:ts', function (req: { params: { ts: string, detail: str
     return;
   }
 
-  if (fs.existsSync(picturesDir + ts + ".png")){
+  if (fs.existsSync(picturesDir + ts + ".jpg")){
 
-    processImage(res, picturesDir + ts + ".png", detail == "hires" ? -1 : 200)
+    processImage(res, picturesDir + ts + ".jpg", detail == "hires" ? -1 : 200)
   }
   else {
     res.sendFile(picturesDir + "test.jpg")
