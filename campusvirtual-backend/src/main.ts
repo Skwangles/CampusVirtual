@@ -84,7 +84,7 @@ app.get('/point/:id', async function (req: { params: { id: any } }, res: { json:
 
 app.get('/image/:detail/:ts', function (req: { params: { ts: string, detail: string } }, res) {
   const ts = Number(req.params.ts).toFixed(5);
-  if (ts === "NaN" || !/^-?\d+$/.test(ts)){
+  if (ts === "NaN"){
     res.status(400).end();
     return;
   }
