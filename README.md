@@ -1,11 +1,11 @@
-Copyright Prof. David Bainbridge (The University of Waikato) 2024 associated with Alexander Stokes honours project CampusVirtual 2024.
+Copyright Alexander Stokes honours project CampusVirtual 2024 in partial fulfillment of his Bachelors of Software Engineering (Hons).
 
 # CampusVirtual
 
 ## Installing
 
 Clone `git clone --recursive https://github.com/Skwangles/CampusVirtual.git`
-Super important that you do it _recursive_, as we have submodules that need cloned for this project to build.
+Super important that you do it _recursive_, as we have submodules that need cloned for this project to build
 
 ## Required Libs
 
@@ -30,16 +30,16 @@ Super important that you do it _recursive_, as we have submodules that need clon
 
 # Modules
 
-FileProcessing
+### CampusVirtual-FileProcessing - Insta360 SDK and image processor
 
 - Interface on top of Insta360's Linux SDK for image/video stitching
 
-SLAM
+### SLAM - Stella VSLAM modifications
 
 - Uses Stella VSLAM
 - Feeds in video frames into Stella to build a Sqlite3 map
 
-RunCampusVirtual
+### RunCampusVirtual - C++ Interface
 
 - User friendly interface to use Stella
   - Has a headless and live mapping viewer option (see the map as it is built)
@@ -47,9 +47,15 @@ RunCampusVirtual
   - Pairs JSON location files to keyframes based on timestamps
   - Allows converting SLAM to postgres database for viewing
 
-campusvirutal-backend
+### campusvirutal-backend
 
 - React frontend using THREE.js to visualise the graph
+
+## graph-pruner
+This is written in Node.JS because this stage doesn't need to interact with any C++ library or SDK, so development wise it is quicker than continously making more C++ scripts.
+
+
+
   
 ```
   Allowed options:
