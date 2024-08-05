@@ -1,6 +1,7 @@
 *.out
 **/build/
 build/
+dist/
 *.jpg
 !test.jpg
 MEDIA/
