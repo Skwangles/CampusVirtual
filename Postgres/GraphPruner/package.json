@@ -3,13 +3,20 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npm install && tsc -b",
+    "start": "npm run build && node dist/main.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "pg-pool": "^3.6.2"
+    "pg-pool": "^3.6.2",
+    "three": "^0.167.1"
+  },
+  "devDependencies": {
+    "@types/pg-pool": "^2.0.6",
+    "@types/three": "^0.167.1"
   }
 }
