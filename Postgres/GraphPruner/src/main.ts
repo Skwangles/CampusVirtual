@@ -69,13 +69,14 @@ async function prune() {
       }
 
       if (degrees.length > 2) {
+        console.log("Id: ", neighbourId, "has degree of ", degrees.length, "skipping")
         // Ignore any points > degree 2
         continue;
       }
 
       const node = await db.query("SELECT pose FROM nodes WHERE keyframe_id = $1 LIMIT 1;", [neighbourId])
 
-      if (node.rows && node.rows.length > 0 && node.rows[0].length == 2){
+      if (node.rows && node.rows.length > 0){
         console.log(node.rows, node.rows[0])
         const position = calculatePositionFromMatrix(node.rows[0]["pose"])
         console.log(position)
@@ -93,12 +94,16 @@ async function prune() {
                     WHEN keyframe_id1 = $1 THEN $2
                     ELSE keyframe_id1
                   END
-                WHERE keyframe_id0 = $1 OR keyframe_id1 = $1;
-            `, [neighbourId])
+                WHERE keyframe_id0 = $1 OR keyframe_id1 = $1 ON CONFLICT DO NOTHING;
+            `, [neighbourId, currentKeyframeId])
 
           db.query("DELETE FROM nodes WHERE keyframe_id = $1;", [neighbourId])
+          db.query("DELETE FROM edges WHERE (keyframe_id0 = $1 AND keyframe_id1 = $1) OR (keyframe_id0 = $2 OR keyframe_id1 = $2);", [currentKeyframeId, neighbourId]) // Remove duplicates
         }
 
+      }
+      else {
+        console.log("No node found for id", neighbourId, "see:", node)
       }
 
       //    Fetch new location and check that one's distance
