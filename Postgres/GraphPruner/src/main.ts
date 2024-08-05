@@ -1,57 +1,104 @@
 import db from "./db";
+import * as THREE from 'three'
 
-async function getFirstKeyframeId() {
-  try {
-    // Execute the query
-    const result = await db.query("SELECT keyframe_id FROM nodes LIMIT 1");
-    if (result.rows.length > 0) {
-      // Log the first item
-      console.log("First keyframe_id:", result.rows[0].keyframe_id);
-    } else {
-      console.log("No rows found.");
-    }
-  } catch (err) {
-    console.error("Error executing query:", err);
-  }
-}
+
+const SCALE_TO_METRES = 50
+
+const calculatePositionFromMatrix = (matrix: number[]): [number, number, number] => {
+  const m = new THREE.Matrix4();
+  //@ts-ignore
+  m.set(...matrix);
+  m.invert();
+  const position = new THREE.Vector3();
+  position.setFromMatrixPosition(m);
+  return [-position.x * SCALE_TO_METRES, -position.y * SCALE_TO_METRES, position.z * SCALE_TO_METRES];
+};
+
+
 
 async function prune() {
-  const firstId = await db.exec(
-    "SELECT keyframe_id FROM nodes WHERE keyframe_id >= 0 LIMIT 1"
-  );
 
-  const firstKeyframeId = firstId.rows[0][0];
+  await db.query("BEGIN")
+  try {
+
+  const firstId = (await db.query(
+    "SELECT keyframe_id FROM nodes WHERE keyframe_id >= 0 LIMIT 1;"
+  )).rows;
+ 
   // Get node next ID
   // WHILE get next node not empty
 
-  let currentKeyframeId = firstKeyframeId;
+  let currentKeyframeId = firstId[0]["keyframe_id"];
+
+  console.log("First keyframe ID", currentKeyframeId)
+
   let nextId = (
-    await db.exec(
-      "SELECT keyframe_id FROM nodes WHERE keyframe_id >= $1 LIMIT 1",
-      currentKeyframeId
+    await db.query(
+      "SELECT keyframe_id, pose FROM nodes WHERE keyframe_id >= $1 LIMIT 1;",
+      [currentKeyframeId]
     )
-  ).rows;
-  while (nextId.length > 0 && nextId) {
+  ).rows[0];
+
+  currentKeyframeId = nextId["keyframe_id"]
+  let currentPosition = calculatePositionFromMatrix(nextId["pose"])
+
+  console.log("Starting loop")
+  while (currentKeyframeId != null) {
     // Note: Experiment with finding direct or covisibility neighbours
-    const neighbours = await db.exec_params(
-      "SELECT keyframe_id1 FROM edges WHERE (keyframe_id0 = $1) AND is_direct = true",
-      firstKeyframeId
+    console.log("Current: ", currentKeyframeId)
+    const neighbours = await db.query(
+      "SELECT keyframe_id1 FROM edges WHERE (keyframe_id0 = $1) AND is_direct = true;",
+      [currentKeyframeId]
     );
+    console.log("Neighbours", neighbours.rowCount)
 
     // Get neighbours
     // For neighbours of degree 1 or 2, find proximity
     // IF neighbour distance < 5, replace its edges with one pointing to new location
 
     for (const neighbour of neighbours.rows) {
-      const neighbourId =
-        neighbour[0] == currentKeyframeId ? neighbour[1] : neighbour[0];
+      const neighbourId = neighbour["keyframe_id1"]
 
-      const neighbour_degree_rows = await db.exec_params(
-        "SELECT id FROM edges WHERE (keyframe_id0 = $1 OR keyframe_id1 = $1) AND is_direct = true",
-        neighbourId
-      );
-      if (neighbour_degree_rows.rows.length > 2) {
+      const degrees = (await db.query(
+        "SELECT keyframe_id1 FROM edges WHERE keyframe_id0 = $1 AND is_direct = true;",
+        [neighbourId]
+      )).rows;
+      
+      if (degrees.length === 0){
+        throw Error("Could not find neighbour of ID " + neighbourId)
+      }
+
+      if (degrees.length > 2) {
+        // Ignore any points > degree 2
         continue;
+      }
+
+      const node = await db.query("SELECT pose FROM nodes WHERE keyframe_id = $1 LIMIT 1;", [neighbourId])
+
+      if (node.rows && node.rows.length > 0 && node.rows[0].length == 2){
+        console.log(node.rows, node.rows[0])
+        const position = calculatePositionFromMatrix(node.rows[0]["pose"])
+        console.log(position)
+
+        const dist = Math.sqrt(Math.pow( position[0] - currentPosition[0], 2) + Math.pow( position[2] - currentPosition[2], 2)) // Ignore Y (index 1) because we just want flat distance
+
+        if (dist < 5){
+          console.log("Deleting edge ", neighbourId, " distance is ", dist, " to currentId ", currentKeyframeId)
+          db.query(`UPDATE Edges
+                SET keyframe_id0 = CASE
+                    WHEN keyframe_id0 = $1 THEN $2
+                    ELSE keyframe_id0
+                  END,
+                    keyframe_id1 = CASE
+                    WHEN keyframe_id1 = $1 THEN $2
+                    ELSE keyframe_id1
+                  END
+                WHERE keyframe_id0 = $1 OR keyframe_id1 = $1;
+            `, [neighbourId])
+
+          db.query("DELETE FROM nodes WHERE keyframe_id = $1;", [neighbourId])
+        }
+
       }
 
       //    Fetch new location and check that one's distance
@@ -59,10 +106,33 @@ async function prune() {
       //      Fetch
       //      Replace
     }
+
+    // Move to next
+    nextId = (
+      await db.query(
+        "SELECT keyframe_id, pose FROM nodes WHERE keyframe_id > $1 LIMIT 1",
+        [currentKeyframeId]
+      )
+    ).rows;
+
+    if (nextId.length == 0){
+      console.log("No nextid exists at id", currentKeyframeId)
+      break;
+    }
+
+    currentKeyframeId = nextId[0]["keyframe_id"]
+    currentPosition = calculatePositionFromMatrix(nextId[0]["pose"])
   }
+  console.log("Committing")
+  await db.query("COMMIT")
+}
+catch (e){
+  await db.query("ROLLBACK")
+  console.log("Error", e)
+}
 }
 
 // ELSE, skip
 
 // Execute the function
-getFirstKeyframeId();
+prune();
