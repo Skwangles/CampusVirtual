@@ -238,7 +238,7 @@ void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
 
     
 
-    // timestamp_groups_to_pg(txn, map_db_path);
+    timestamp_groups_to_pg(txn, map_db_path);
 
     txn.commit();
 
