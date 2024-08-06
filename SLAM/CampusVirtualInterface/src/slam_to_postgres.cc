@@ -56,6 +56,9 @@ void create_tables_if_not_exist(pqxx::connection& conn) {
             ts NUMERIC NOT NULL,
             keyframe_id INTEGER UNIQUE NOT NULL,
             pose DOUBLE PRECISION[] NOT NULL,
+            x_trans DOUBLE PRECISION,
+            y_trans DOUBLE PRECISION,
+            z_trans DOUBLE PRECISION,
             label TEXT DEFAULT NULL
         );
     )");
@@ -162,6 +165,7 @@ void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
         const auto id = keyfrm->id_;
         const auto ts = keyfrm->timestamp_;
         const auto pose = keyfrm->get_pose_cw();
+        const stella_vslam::Vec3_t trans = keyfrm->get_trans_wc(); // World coordinate translation
 
         // Insert keyframe into the database
         std::vector<double> pose_vec;
@@ -170,8 +174,8 @@ void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
             int il = i % 4;
             pose_vec.push_back(pose(ir, il));
         }
-        txn.exec_params("INSERT INTO nodes (keyframe_id, ts, pose) VALUES ($1, $2, $3) ON CONFLICT (keyframe_id) DO UPDATE SET ts = EXCLUDED.ts , pose = EXCLUDED.pose",
-                        id, ts, vector_to_pg_array(pose_vec));
+        txn.exec_params("INSERT INTO nodes (keyframe_id, ts, pose, x_trans, y_trans, z_trans) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (keyframe_id) DO UPDATE SET ts = EXCLUDED.ts , pose = EXCLUDED.pose",
+                        id, ts, vector_to_pg_array(pose_vec), trans(0), trans(1), trans(2) );
     }
 
     for (const auto& keyfrm : keyfrms) {
@@ -203,7 +207,18 @@ void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
                             keyfrm_id, spanning_parent->id_);
         }
 
-        
+        const auto loop_edges = keyfrm->graph_node_->get_loop_edges();
+        if (!loop_edges.empty()) {
+            for (const auto& loop : loop_edges) {
+                if (!loop || loop->will_be_erased()) {
+                    continue;
+                }
+                txn.exec_params("INSERT INTO edges (keyframe_id0, keyframe_id1, is_direct) VALUES ($1, $2, true) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
+                                keyfrm_id, loop->id_);
+                txn.exec_params("INSERT INTO edges (keyframe_id1, keyframe_id0, is_direct) VALUES ($1, $2, true) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
+                                keyfrm_id, loop->id_);
+            }
+        }
 
         // Covisibility graph
         const auto covisibilities = keyfrm->graph_node_->get_covisibilities_over_min_num_shared_lms(100);
@@ -219,24 +234,11 @@ void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
             }
         }
 
-        const auto loop_edges = keyfrm->graph_node_->get_loop_edges();
-        if (!loop_edges.empty()) {
-            for (const auto& loop : loop_edges) {
-                if (!loop || loop->will_be_erased()) {
-                    continue;
-                }
-                txn.exec_params("INSERT INTO edges (keyframe_id0, keyframe_id1, is_direct) VALUES ($1, $2, false) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
-                                keyfrm_id, loop->id_);
-                txn.exec_params("INSERT INTO edges (keyframe_id1, keyframe_id0, is_direct) VALUES ($1, $2, false) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
-                                keyfrm_id, loop->id_);
-            }
-        }
-
     }
 
     
 
-    timestamp_groups_to_pg(txn, map_db_path);
+    // timestamp_groups_to_pg(txn, map_db_path);
 
     txn.commit();
 
