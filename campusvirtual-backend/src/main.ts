@@ -20,53 +20,84 @@ app.get('/', function (req, res) {
 
 const send_test_image = false
 
-app.get('/point/:id/neighbours/:depth', async function (req, res) {
-  const main_point_id = req.params.id
-  const neighbours_depth = req.params.depth
+app.get('/point/:id/neighbours/:distance_thresh', async function (req, res) {
+  // Used BFS to find all points down the graph within a range
+  const minDepth = 5; // case for when point distances are too large to give decent # of options
+  const maxDepth = 20;
 
-  const rows = await db.query(`
-    WITH RECURSIVE neighbours AS (
-      SELECT 
-        e.keyframe_id0 AS start_id,
-        e.keyframe_id1 AS keyframe_id,
-        n.ts,
-        n.pose,
-        1 AS depth
-      FROM edges e
-      JOIN nodes n ON e.keyframe_id1 = n.keyframe_id
-      WHERE e.keyframe_id0 = $1
-      UNION ALL
-      SELECT 
-        n1.start_id,
-        e.keyframe_id1,
-        n2.ts,
-        n2.pose,
-        n1.depth + 1
-      FROM neighbours n1
-      JOIN edges e ON e.keyframe_id0 = n1.keyframe_id
-      JOIN nodes n2 ON e.keyframe_id1 = n2.keyframe_id
-      WHERE n1.depth < $2
-    )
-    SELECT DISTINCT keyframe_id, ts, pose
-    FROM neighbours WHERE keyframe_id <> $1;
-    `, [main_point_id, neighbours_depth]);
 
-  res.json(rows.rows)
-})
+  const mainPointId = Number(req.params.id)
+  
+  const distanceThreshold = Number(req.params.distance_thresh);
+  if (isNaN(mainPointId) || isNaN(distanceThreshold)){
+    res.status(400).send("Invalid params").end();
+    return;
+  }
 
-app.get('/point/:id/neighbours', async function (req: { params: { id: any; depth: any } }, res: { json: (arg0: {}) => void }) {
-  const main_point_id = req.params.id
-  const neighbours_depth = req.params.depth
-  // Fetch from Edges for keyframe_id0 = id and select keyframe_id1 - JOIN keyframe_id1 ON 
+  const getDistance = (x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) => {
+    return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2) + Math.pow(z2 - z1, 2));
+  };
 
-  const rows = await db.query(`
-    SELECT n.keyframe_id, n.ts, n.pose, e.is_direct
-    FROM edges e
-    JOIN nodes n ON e.keyframe_id1 = n.keyframe_id
-    WHERE e.keyframe_id0 = $1;
-    `, [main_point_id]);
+  // Fetch the initial point
+  const { rows: [currentPoint] } = await db.query(
+    'SELECT x_trans, y_trans, z_trans FROM nodes WHERE keyframe_id = $1',
+    [mainPointId]
+  );
+  if (!currentPoint) {
+    throw new Error('Current point not found');
+  }
 
-  res.json(rows.rows)
+  const { x_trans: x1, y_trans: y1, z_trans: z1 } = currentPoint;
+  console.log("Current Point: ", currentPoint)
+
+  // Initialize a queue for BFS and a set to keep track of visited nodes
+  const queue: { keyframe_id: number, depth: number }[] = [{ keyframe_id: mainPointId, depth: 0 }];
+  const visited = new Set<number>();
+  const result = new Set(); // keyframe_id => list of neighbors
+
+  visited.add(mainPointId);
+
+  while (queue.length > 0) {
+    const { keyframe_id, depth } = queue.shift()!;
+    console.log("Looking for keyframe_id:", keyframe_id, " at depth ", depth)
+
+
+    if (depth >= maxDepth) continue;
+
+    // Fetch neighbors at current depth
+    const { rows: neighbours } = await db.query(
+      `SELECT e.keyframe_id1 AS keyframe_id,
+              n.x_trans,
+              n.y_trans,
+              n.z_trans,
+              n.ts,
+              n.pose
+       FROM edges e
+       JOIN nodes n ON e.keyframe_id1 = n.keyframe_id
+       WHERE e.keyframe_id0 = $1`,
+      [keyframe_id]
+    );
+
+    for (const neighbour of neighbours) {
+      const { keyframe_id: neighborId, x_trans: x2, y_trans: y2, z_trans: z2 } = neighbour;
+
+      // Check distance
+      const distance = getDistance(x1, y1, z1, x2, y2, z2);
+      if (distance < distanceThreshold || depth < minDepth) {
+        if (mainPointId !== keyframe_id && !result.has(neighbour))
+        {
+          result.add(neighbour);
+        }
+
+        if (!visited.has(neighborId)) {
+          visited.add(neighborId);
+          queue.push({ keyframe_id: neighborId, depth: depth + 1 });
+        }
+      }
+    }
+  }
+
+  res.json([...result.values()])
 })
 
 app.get('/point/:id', async function (req: { params: { id: any } }, res: { json: (arg0: any) => void }) {
