@@ -20,16 +20,18 @@ app.get('/', function (req, res) {
 
 const send_test_image = false
 
-app.get('/point/:id/neighbours/:distance_thresh', async function (req, res) {
+app.get('/point/:id/neighbours/:distance_thresh/:y_dist_thresh', async function (req, res) {
   // Used BFS to find all points down the graph within a range
   const minDepth = 5; // case for when point distances are too large to give decent # of options
-  const maxDepth = 20;
+  const maxDepth = 10;
 
 
   const mainPointId = Number(req.params.id)
   
   const distanceThreshold = Number(req.params.distance_thresh);
-  if (isNaN(mainPointId) || isNaN(distanceThreshold)){
+  const yDistThresh = Number(req.params.y_dist_thresh)
+
+  if (isNaN(mainPointId) || isNaN(distanceThreshold) || isNaN(yDistThresh)){
     res.status(400).send("Invalid params").end();
     return;
   }
