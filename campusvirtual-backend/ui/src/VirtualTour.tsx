@@ -145,7 +145,6 @@ const VirtualTourContent: React.FC<{ currentId:any, setCurrentId:any, currentPoi
 
   const calculatePositionFromMatrix = (matrix: number[]): [number, number, number] => {
     const m = new THREE.Matrix4();
-    console.log(matrix)
     //@ts-ignore
     m.set(...matrix);
     m.invert();
@@ -181,25 +180,22 @@ const VirtualTourContent: React.FC<{ currentId:any, setCurrentId:any, currentPoi
 };
 
 const VirtualTour: React.FC = () => {
-  const [currentId, setCurrentId] = useState<string>("270");
-  const [currentPoint, setCurrentPoint] = useState<PointData>({pose: [], ts:"", keyframe_id:300, location: "" });
-  const [camRotation, setCameraRotation] = useState<any>({ yaw: 0, pitch: 0});
-  // New state for rotation
-  
+  const defaultInitId = "270"
   let params = new URLSearchParams(window.location.search)
-
-
-  useEffect(() => {
+  const [currentId, setCurrentId] = useState<string>(() => {
     if (params.has("id")){
-      setCurrentId(params.get("id") ?? "0");
+      return params.get("id") ?? defaultInitId;
     }
-    
+    return defaultInitId;
+  });
+  const [currentPoint, setCurrentPoint] = useState<PointData>({pose: [], ts:"", keyframe_id:300, location: "" });
+  const [camRotation, setCameraRotation] = useState<any>(() => {
     if (params.has("yaw") || params.has("pitch")){
-      setCameraRotation({ yaw: Number(params.get("yaw") ?? camRotation["yaw"] ?? 0), pitch: Number(params.get("pitch") ?? camRotation["pitch"] ?? 0)})
+      return { yaw: Number(params.get("yaw") ?? camRotation["yaw"] ?? 0), pitch: Number(params.get("pitch") ?? camRotation["pitch"] ?? 0)};
     }
-
-  }, []);
-
+    return { yaw: 0, pitch: 0}
+  });
+  // New state for rotation
 
   useEffect(() =>{
     params.set("id", currentId)
