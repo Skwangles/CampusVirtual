@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import axios from 'axios';
 import CameraRotationControls from './RotationController';
 
-const GLOBAL_SCALE = 50
+const GLOBAL_SCALE = 40
 
 const API_PREFIX = ""; // Use to specify API server different to frontend e.g. localhost:3001
 
@@ -41,7 +41,7 @@ const Hotspot: React.FC<HotspotProps> = ({ position, onClick, rotation, image_id
   //   setTexture(new THREE.TextureLoader().load(`${API_PREFIX}/image/thumbnail/${image_identifier}`));
   // }, [image_identifier])
 
-  const dropHotspotsBelowEyeLevelOffset = 0.2;
+  const dropHotspotsBelowEyeLevelOffset = 0.3;
   position[1] -= GLOBAL_SCALE * dropHotspotsBelowEyeLevelOffset
   return (
     <mesh position={position} rotation={rotation} onClick={onClick} receiveShadow>
@@ -103,7 +103,8 @@ const VirtualTourContent: React.FC<{ currentId:any, setCurrentId:any, currentPoi
       const pointResponse = await axios.get<PointData>(`${API_PREFIX}/point/${pointId}`);
       const pointData = pointResponse.data;
 
-      const neighboursResponse = await axios.get<NeighbourData[]>(`${API_PREFIX}/point/${pointId}/neighbours/5`);
+      const neighboursResponse = await axios.get<NeighbourData[]>(`${API_PREFIX}/point/${pointId}/neighbours/0.9/0.2`);
+      
       const neighboursData = neighboursResponse.data;
 
       setCurrentPoint(pointData);
@@ -144,6 +145,7 @@ const VirtualTourContent: React.FC<{ currentId:any, setCurrentId:any, currentPoi
 
   const calculatePositionFromMatrix = (matrix: number[]): [number, number, number] => {
     const m = new THREE.Matrix4();
+    console.log(matrix)
     //@ts-ignore
     m.set(...matrix);
     m.invert();
