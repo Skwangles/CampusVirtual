@@ -4,6 +4,7 @@ import { Canvas, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import axios from 'axios';
 import CameraRotationControls from './RotationController';
+import Map from './Map';
 
 const GLOBAL_SCALE = 40
 
@@ -85,9 +86,35 @@ const SphereWithHotspots: React.FC<SphereWithHotspotsProps> = ({ position, textu
   );
 };
 
-const VirtualTourContent: React.FC<{ currentId:any, setCurrentId:any, currentPoint: any, setCurrentPoint: any }> = ({ currentId, setCurrentId, currentPoint, setCurrentPoint }) => {
-  
-  const [hotspots, setHotspots] = useState<HotspotObj[]>([]);
+const calculatePositionFromMatrix = (matrix: number[]): [number, number, number] => {
+  const m = new THREE.Matrix4();
+  //@ts-ignore
+  m.set(...matrix);
+  m.invert();
+  const position = new THREE.Vector3();
+  position.setFromMatrixPosition(m);
+  return [-position.x * GLOBAL_SCALE, -position.y * GLOBAL_SCALE, position.z * GLOBAL_SCALE];
+};
+
+function getYRotation(matrix) {
+  // Ensure the matrix is 4x4
+  if (matrix.length !== 16) {
+      throw new Error("Invalid matrix size. Expected a 4x4 matrix.");
+  }
+
+  // Extract the relevant elements
+  const m11 = matrix[0];
+  const m31 = matrix[8];
+
+  // Calculate the rotation angle around the Y-axis
+  const rotationY = Math.atan2(m31, m11);
+
+  return -rotationY; // Rotation in radians
+}
+
+const VirtualTourContent: React.FC<{ currentId:any, setCurrentId:any, currentPoint: any, setCurrentPoint: any, neighbours: any, setNeighbours: any }> = ({ currentId, setCurrentId, currentPoint, setCurrentPoint, neighbours, setNeighbours}) => {
+
+  const [hotspots, setHotspots] = useState<HotspotObj[]>([])
   const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [currentPosition, setCurrentPosition] = useState<THREE.Vector3>(new THREE.Vector3())
   const [rotation, setRotation] = useState<[number, number, number]>([0, 0, 0]);  
@@ -143,41 +170,22 @@ const VirtualTourContent: React.FC<{ currentId:any, setCurrentId:any, currentPoi
     }
   };
 
-  const calculatePositionFromMatrix = (matrix: number[]): [number, number, number] => {
-    const m = new THREE.Matrix4();
-    //@ts-ignore
-    m.set(...matrix);
-    m.invert();
-    const position = new THREE.Vector3();
-    position.setFromMatrixPosition(m);
-    return [-position.x * GLOBAL_SCALE, -position.y * GLOBAL_SCALE, position.z * GLOBAL_SCALE];
-  };
-
-  function getYRotation(matrix) {
-    // Ensure the matrix is 4x4
-    if (matrix.length !== 16) {
-        throw new Error("Invalid matrix size. Expected a 4x4 matrix.");
-    }
-
-    // Extract the relevant elements
-    const m11 = matrix[0];
-    const m31 = matrix[8];
-
-    // Calculate the rotation angle around the Y-axis
-    const rotationY = Math.atan2(m31, m11);
-
-    return -rotationY; // Rotation in radians
-}
+ 
 
   const handleHotspotClick = (hotspot: HotspotObj) => {
     setCurrentId(hotspot.id);
-    // fetchPointData(hotspot.id);
   };
 
   return currentImage ? (
     <SphereWithHotspots position={currentPosition} textureUrl={currentImage} hotspots={hotspots} onHotspotClick={handleHotspotClick} rotation={rotation} />
   ) : null;
 };
+
+async function updateFloorplan(setNeighbours) {
+  const response = await axios.get<NeighbourData[]>(API_PREFIX + "/floor/" + location);
+  const data = response.data.map(val => {position: calculatePositionFromMatrix(val.pose), );
+
+}
 
 const VirtualTour: React.FC = () => {
   const defaultInitId = "270"
@@ -189,6 +197,9 @@ const VirtualTour: React.FC = () => {
     return defaultInitId;
   });
   const [currentPoint, setCurrentPoint] = useState<PointData>({pose: [], ts:"", keyframe_id:300, location: "" });
+  const [neighbours, setNeighbours] = useState<HotspotObj[]>([]);
+  const [locationGroup, setLocationGroup] = useState<string>("");
+
   const [camRotation, setCameraRotation] = useState<any>(() => {
     if (params.has("yaw") || params.has("pitch")){
       return { yaw: Number(params.get("yaw") ?? camRotation["yaw"] ?? 0), pitch: Number(params.get("pitch") ?? camRotation["pitch"] ?? 0)};
@@ -203,6 +214,14 @@ const VirtualTour: React.FC = () => {
     params.set("pitch", Number(camRotation["pitch"]).toFixed(4))
     history.pushState({}, "", "?" + params.toString())
   }, [currentId])
+
+  useEffect(() => {
+    setLocationGroup(currentPoint.location)
+  }, [currentPoint])
+
+  useEffect(() => {
+
+  }, [locationGroup])
 
   window.onpopstate = e =>{
     console.log(window.history.length)
@@ -221,6 +240,7 @@ const VirtualTour: React.FC = () => {
   return (
     <>
     <div style={{position: "fixed", bottom: 0, left: 0, background: "black", opacity: 0.6, zIndex: 99 }}>Location: {currentPoint?.location}</div>
+    <Map imageSrc='test.jpg' pointsOfInterest={neighbours}/>
     <div style={{ width: "100vw", height: "100vh" }}>
     <Canvas camera={{ position: [0, 0, 10], fov: 75}} frameloop='demand' shadows>
     <ambientLight
@@ -230,7 +250,7 @@ const VirtualTour: React.FC = () => {
         castShadow
       />
       <CameraRotationControls initCameraRotation={camRotation} setCameraRotation={setCameraRotation} />
-      <VirtualTourContent currentId={currentId} setCurrentId={setCurrentId} currentPoint={currentPoint} setCurrentPoint={setCurrentPoint} />
+      <VirtualTourContent currentId={currentId} setCurrentId={setCurrentId} currentPoint={currentPoint} setCurrentPoint={setCurrentPoint} setNeighbours={setNeighbours} neighbours={neighbours} />
     </Canvas>
     </div>
     </>
