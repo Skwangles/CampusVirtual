@@ -6,7 +6,7 @@ import axios from 'axios';
 import CameraRotationControls from './RotationController';
 import Map from './Map';
 
-const GLOBAL_SCALE = 40
+const COORDS_TO_METRES = 40
 const showMap = false;
 const API_PREFIX = ""; // Use to specify API server different to frontend e.g. localhost:3001
 
@@ -30,25 +30,34 @@ interface NeighbourData {
   pose: number[];
   ts: string;
   keyframe_id: string;
-  is_direct: boolean;
 }
 
 
 
 const Hotspot: React.FC<HotspotProps> = ({ position, onClick, rotation, image_identifier}) => {
+  const sphereSize = 20 / COORDS_TO_METRES;
+  const outlineSize = sphereSize * 1.09
+  const dropHotspotsBelowEyeLevelOffset = 8 / COORDS_TO_METRES;
   // const [texture, setTexture] = useState(new THREE.Texture())
 
   // useEffect(() => {
   //   setTexture(new THREE.TextureLoader().load(`${API_PREFIX}/image/thumbnail/${image_identifier}`));
   // }, [image_identifier])
 
-  const dropHotspotsBelowEyeLevelOffset = 0.3;
-  position[1] -= GLOBAL_SCALE * dropHotspotsBelowEyeLevelOffset
+  
+  position[1] -= COORDS_TO_METRES * dropHotspotsBelowEyeLevelOffset
   return (
+    <>
     <mesh position={position} rotation={rotation} onClick={onClick} receiveShadow>
-      <sphereGeometry args={[0.5, 10, 10]} />
+      <sphereGeometry args={[sphereSize, 20, 20]} />
+      
       <meshStandardMaterial color={"#E1251B"} /*map={texture}*//> // wireframe wireframeLinewidth={0.5}
     </mesh>);
+    <mesh position={position} rotation={rotation} onClick={onClick}>
+    <sphereGeometry args={[outlineSize, 20, 20]} />
+    <meshBasicMaterial color={"#FFFFFF"} side={THREE.BackSide}/>
+    </mesh>
+  </>);
 }
 
 interface SphereWithHotspotsProps {
@@ -93,7 +102,7 @@ const calculatePositionFromMatrix = (matrix: number[]): [number, number, number]
   m.invert();
   const position = new THREE.Vector3();
   position.setFromMatrixPosition(m);
-  return [-position.x * GLOBAL_SCALE, -position.y * GLOBAL_SCALE, position.z * GLOBAL_SCALE];
+  return [-position.x * COORDS_TO_METRES, -position.y * COORDS_TO_METRES, position.z * COORDS_TO_METRES];
 };
 
 function getYRotation(matrix) {
