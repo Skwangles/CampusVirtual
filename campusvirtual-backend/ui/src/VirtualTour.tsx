@@ -191,7 +191,7 @@ const VirtualTourContent: React.FC<{ currentId:any, setCurrentId:any, currentPoi
 };
 
 const VirtualTour: React.FC = () => {
-  const defaultInitId = "270"
+  const defaultInitId = "272"
   let params = new URLSearchParams(window.location.search)
   const [currentId, setCurrentId] = useState<string>(() => {
     if (params.has("id")){
