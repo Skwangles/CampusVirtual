@@ -5,7 +5,7 @@
   "main": "src/main.ts",
   "scripts": {
     "build": "cd ui && npm run build && cd .. && npm install && tsc -b",
-    "start": "node build/main.js",
+    "start": "npm run build && node build/main.js",
     "client": "npm start --prefix ui",
     "db": "npx @databases/pg-schema-cli --database postgres://test:test@localhost:5432/campusvirtual --directory src/__generated__"
   },
