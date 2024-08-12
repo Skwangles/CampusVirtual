@@ -130,7 +130,7 @@ const VirtualTourContent: React.FC<{ currentId:any, setCurrentId:any, currentPoi
       const pointResponse = await axios.get<PointData>(`${API_PREFIX}/point/${pointId}`);
       const pointData = pointResponse.data;
 
-      const neighboursResponse = await axios.get<NeighbourData[]>(`${API_PREFIX}/point/${pointId}/neighbours/0.9/0.2`);
+      const neighboursResponse = await axios.get<NeighbourData[]>(`${API_PREFIX}/point/${pointId}/neighbours/8/2`);
       
       const neighboursData = neighboursResponse.data;
 
