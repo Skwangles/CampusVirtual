@@ -20,18 +20,20 @@ app.get('/', function (req, res) {
 
 const send_test_image = false
 
-app.get('/point/:id/neighbours/:distance_thresh/:y_dist_thresh', async function (req, res) {
+const COORDS_TO_METRES = 40;
+
+app.get('/point/:id/neighbours/:distance_thresh_m/:y_dist_thresh_m', async function (req, res) {
   // Used BFS to find all points down the graph within a range
   const minDepth = 5; // case for when point distances are too large to give decent # of options
   const maxDepth = 10;
 
 
   const mainPointId = Number(req.params.id)
-  
-  const distanceThreshold = Number(req.params.distance_thresh);
-  const yDistThresh = Number(req.params.y_dist_thresh)
 
-  if (isNaN(mainPointId) || isNaN(distanceThreshold) || isNaN(yDistThresh)){
+  const distanceThreshold = Number(req.params.distance_thresh_m) / COORDS_TO_METRES;
+  const yDistThresh = Number(req.params.y_dist_thresh_m) / COORDS_TO_METRES
+
+  if (isNaN(mainPointId) || isNaN(distanceThreshold) || isNaN(yDistThresh)) {
     res.status(400).send("Invalid params").end();
     return;
   }
@@ -84,10 +86,9 @@ app.get('/point/:id/neighbours/:distance_thresh/:y_dist_thresh', async function 
       const { keyframe_id: neighborId, x_trans: x2, y_trans: y2, z_trans: z2 } = neighbour;
 
       // Check distance
-      const distance = getDistance(x1, y1, z1, x2, y2, z2);
+      const distance = getDistance(x1 * COORDS_TO_METRES, y1 * COORDS_TO_METRES, z1 * COORDS_TO_METRES, x2 * COORDS_TO_METRES, y2 * COORDS_TO_METRES, z2 * COORDS_TO_METRES);
       if (distance < distanceThreshold || depth < minDepth) {
-        if (mainPointId !== keyframe_id && !result.has(neighbour))
-        {
+        if (mainPointId !== keyframe_id && !result.has(neighbour)) {
           result.add(neighbour);
         }
 
@@ -102,6 +103,17 @@ app.get('/point/:id/neighbours/:distance_thresh/:y_dist_thresh', async function 
   res.json([...result.values()])
 })
 
+app.get('/floorplan/:id', async function (req: any, res: any) {
+  const id = req.params.id;
+  const rows = await db.query(`
+			SELECT n.keyframe_id, n.ts, n.pose
+			FROM nodes n 
+			JOIN node_locations l ON l.name = n.location
+			WHERE l.location = 
+				(SELECT location FROM nodes WHERE keyframe_id = $1)`, [id])
+  res.json(rows.rows)
+})
+
 app.get('/point/:id', async function (req: { params: { id: any } }, res: { json: (arg0: any) => void }) {
   const rows = await db.query(`
     SELECT n.keyframe_id, n.ts, n.pose, l.location
@@ -110,14 +122,14 @@ app.get('/point/:id', async function (req: { params: { id: any } }, res: { json:
     WHERE n.keyframe_id = $1;
     `, [req.params.id]);
 
-    //, convert_from(vt.name, 'UTF-8')
-// JOIN video_timestamps vt ON n.ts >= vt.start_ts AND n.ts <= vt.end_ts
+  //, convert_from(vt.name, 'UTF-8')
+  // JOIN video_timestamps vt ON n.ts >= vt.start_ts AND n.ts <= vt.end_ts
   res.json(rows.rows[0])
 })
 
 app.get('/image/:detail/:ts', function (req: { params: { ts: string, detail: string } }, res) {
   const ts = Number(req.params.ts).toFixed(5);
-  if (ts === "NaN"){
+  if (ts === "NaN") {
     res.status(400).send("Image id was not a valid image ID")
     return;
   }
@@ -125,18 +137,18 @@ app.get('/image/:detail/:ts', function (req: { params: { ts: string, detail: str
 
 
   const detail = req.params.detail; // TODO: Add optimisation to send lores or hires as needed
-  if (detail !== "hires" && detail !== "lores" && detail !== "thumbnail"){
+  if (detail !== "hires" && detail !== "lores" && detail !== "thumbnail") {
     res.status(400).send("The image detail must be 'lores', 'thumbnail' or 'hires'");
   }
 
 
-  if (send_test_image){
+  if (send_test_image) {
     res.sendFile(picturesDir + "test.jpg");
     console.log("Sending Test")
     return;
   }
 
-  if (fs.existsSync(picturesDir + ts + ".jpg")){
+  if (fs.existsSync(picturesDir + ts + ".jpg")) {
 
     processImage(res, picturesDir + ts + ".jpg", detail === "hires" ? -1 : (detail === "lores" ? 200 : 50))
   }
