@@ -7,7 +7,7 @@ import CameraRotationControls from './RotationController';
 import Map from './Map';
 
 const GLOBAL_SCALE = 40
-
+const showMap = false;
 const API_PREFIX = ""; // Use to specify API server different to frontend e.g. localhost:3001
 
 interface HotspotProps {
@@ -76,7 +76,7 @@ const SphereWithHotspots: React.FC<SphereWithHotspotsProps> = ({ position, textu
   return (
     <group>
       <mesh rotation={rotation} position={position} scale={[-1, 1, 1]}>
-          <sphereGeometry args={[100, 64, 64]} />
+          <sphereGeometry args={[500, 64, 64]} />
           <meshBasicMaterial map={currentTexture} side={THREE.BackSide} />
       </mesh>
       {hotspots.map((hotspot, index) => (
@@ -181,12 +181,6 @@ const VirtualTourContent: React.FC<{ currentId:any, setCurrentId:any, currentPoi
   ) : null;
 };
 
-async function updateFloorplan(setNeighbours) {
-  const response = await axios.get<NeighbourData[]>(API_PREFIX + "/floor/" + location);
-  const data = response.data.map(val => {position: calculatePositionFromMatrix(val.pose), );
-
-}
-
 const VirtualTour: React.FC = () => {
   const defaultInitId = "270"
   let params = new URLSearchParams(window.location.search)
@@ -197,7 +191,7 @@ const VirtualTour: React.FC = () => {
     return defaultInitId;
   });
   const [currentPoint, setCurrentPoint] = useState<PointData>({pose: [], ts:"", keyframe_id:300, location: "" });
-  const [neighbours, setNeighbours] = useState<HotspotObj[]>([]);
+  const [neighbours, setNeighbours] = useState<any[]>([]);
   const [locationGroup, setLocationGroup] = useState<string>("");
 
   const [camRotation, setCameraRotation] = useState<any>(() => {
@@ -206,7 +200,6 @@ const VirtualTour: React.FC = () => {
     }
     return { yaw: 0, pitch: 0}
   });
-  // New state for rotation
 
   useEffect(() =>{
     params.set("id", currentId)
@@ -220,11 +213,16 @@ const VirtualTour: React.FC = () => {
   }, [currentPoint])
 
   useEffect(() => {
+	const update = async () => {
+		 const response = await axios.get<NeighbourData[]>(API_PREFIX + "/floor/" + location);
+		 const data = response.data.map(val => ({position: calculatePositionFromMatrix(val.pose), name: val.keyframe_id}));
+		 setNeighbours(data);
+	}
 
+	update();
   }, [locationGroup])
 
   window.onpopstate = e =>{
-    console.log(window.history.length)
 
     params = new URLSearchParams(window.location.search)
     if (params.has("id")){
@@ -240,7 +238,7 @@ const VirtualTour: React.FC = () => {
   return (
     <>
     <div style={{position: "fixed", bottom: 0, left: 0, background: "black", opacity: 0.6, zIndex: 99 }}>Location: {currentPoint?.location}</div>
-    <Map imageSrc='test.jpg' pointsOfInterest={neighbours}/>
+    {showMap && (<Map imageSrc='test.jpg' pointsOfInterest={neighbours}/>)}
     <div style={{ width: "100vw", height: "100vh" }}>
     <Canvas camera={{ position: [0, 0, 10], fov: 75}} frameloop='demand' shadows>
     <ambientLight
