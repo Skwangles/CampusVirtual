@@ -1,0 +1,50 @@
+.floor-list {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  background: rgba(0, 0, 0, 0.2); /* Transparent gray background */
+  padding: 10px;
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000; /* Ensure it's above other content */
+}
+
+.floor-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.floor-list li {
+  cursor: pointer;
+  padding: 5px;
+  border-bottom: 1px solid #ccc;
+}
+
+.floor-list li:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.drawer-toggle {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  z-index: 1001; /* Ensure it's above the floor list */
+}
+
+.dialog {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  background: white;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
