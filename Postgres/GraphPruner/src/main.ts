@@ -5,7 +5,7 @@ import * as path from 'path';
 import sharp, { strategy } from 'sharp';
 
 const COORDS_TO_METRES = 40;
-const TARGET_CLOSENESS = 5;
+const TARGET_CLOSENESS = 8;
 
 function calculatePositionFromMatrix(
   matrix: number[]
@@ -42,7 +42,7 @@ async function calculateImageSharpness(filePath: string): Promise<number> {
 async function getNextKeyframe(db: any, currentId: number) {
   let { rows: [nextFrame] }: { rows: Array<{ keyframe_id: string, degree: number, ts: number }> } = await db.query(
     `SELECT n.keyframe_id, n.ts, COUNT(e1.keyframe_id1) as degree FROM nodes n JOIN edges e1 ON n.keyframe_id = e1.keyframe_id0
-            WHERE n.keyframe_id > $1 AND e1.is_direct = true GROUP BY n.keyframe_id, n.ts LIMIT 1`, [currentId]
+            WHERE n.keyframe_id > $1 AND (e1.type = 0 OR e1.type = 1)  GROUP BY n.keyframe_id, n.ts LIMIT 1`, [currentId]
   );
   return nextFrame;
 }
@@ -52,7 +52,7 @@ async function getNextKeyframe(db: any, currentId: number) {
  * Loop through each node, if a node is within 5m keep the least blurry
  * (except if is a junction point, then never remove that one) 
  */
-async function useGreedyStrategy(db: any, image_directory = "/home/skwangles/Documents/Honours/CampusVirtual/pictures/", extension = ".jpg") {
+async function useGreedyStrategy(db: any, keep_degree_2_plus = false, image_directory = "/home/skwangles/Documents/Honours/CampusVirtual/pictures/", extension = ".png") {
   const firstFrame = await getNextKeyframe(db, -1);
   if (!firstFrame) {
     throw new Error("Could not find the first frame!")
@@ -72,29 +72,25 @@ async function useGreedyStrategy(db: any, image_directory = "/home/skwangles/Doc
 
     // Find the direct neighbours 
     let neighbours = await getNeighbours(db, currentKeyframeId);
-    console.log(neighbours)
     for (const neighbour of neighbours) {
       const neighbourId = neighbour.keyframe_id;
       const ts = neighbour.ts;
-      if (neighbour.degree > 2 && currentDegree > 2) {
+      if (keep_degree_2_plus && neighbour.degree > 2 && currentDegree > 2) {
         // Can only delete degree <= 2 to avoid ruining intersections
         console.log("Skipping:", neighbour, " and ", currentDegree)
         continue
       }
 
       const neighbourPosition = await getNodePosition(db, neighbourId);
-      console.log("Neighbour postion: ", neighbourPosition, currentPosition)
       const distance = calculateDistance(currentPosition, neighbourPosition);
 
-      console.log(distance)
       if (distance < TARGET_CLOSENESS) {
-        console.log('Distance is', distance, 'to currentId', currentKeyframeId);
 
         const currentSharpness = await calculateImageSharpness(`${image_directory}${Number(currentTs).toFixed(5)}${extension}`);
         const neighbourSharpness = await calculateImageSharpness(`${image_directory}${Number(ts).toFixed(5)}${extension}`);
 
         // TODO: Maybe replace the intersection with the least blurry? Update that node's ts and pose
-        if (currentDegree > 2 || neighbourSharpness < currentSharpness) {
+        if ((keep_degree_2_plus && currentDegree > 2) || neighbourSharpness < currentSharpness) {
           console.log('Deleting neighbour', neighbourId, 'with sharpness', neighbourSharpness);
           await replaceNode(db, neighbourId);
         } else {
@@ -300,7 +296,7 @@ async function getNeighbours(db: any, keyframeId: number) {
     `SELECT e.keyframe_id1 as keyframe_id, n.ts, COUNT(e1.keyframe_id1) as degree FROM edges e 
               JOIN edges e1 ON e.keyframe_id1 = e1.keyframe_id0
               JOIN nodes n ON e.keyframe_id1 = n.keyframe_id 
-              WHERE e.keyframe_id0 = $1 AND e.is_direct = true AND e1.is_direct = true 
+              WHERE e.keyframe_id0 = $1 AND (e.type = 0 OR e.type = 1) AND (e1.type = 0 OR e1.type = 1) 
               GROUP BY e.keyframe_id1, n.ts`,
     [keyframeId]
   );
@@ -326,17 +322,14 @@ function calculateDistance(pos1: number[], pos2: number[]): number {
 
 // Helper function to delete a node and its edges
 async function replaceNode(db: any, keyframeId: number) {
-  const direct_neighbours = (await db.query('SELECT keyframe_id1 as keyframe_id FROM edges WHERE keyframe_id0 = $1', [keyframeId])).rows;
+  const direct_neighbours = (await db.query('SELECT keyframe_id1 as keyframe_id FROM edges WHERE keyframe_id0 = $1 AND (type = 0 OR type = 1)', [keyframeId])).rows;
 
-  // TODO: Connect neighbours with eachother
-
-  console.log("Connecting neighbours:", direct_neighbours)
   for (const neighbour_id in direct_neighbours) {
     const neighbour = direct_neighbours[neighbour_id]
     for (const new_neighbour of direct_neighbours.slice(neighbour_id)) {
       if (new_neighbour.keyframe_id == neighbour.keyframe_id) continue;
-      await db.query('INSERT INTO edges (keyframe_id0, keyframe_id1, is_direct) VALUES ($1, $2, true) ON CONFLICT (keyframe_id0, keyframe_id1) DO UPDATE SET is_direct = true;', [neighbour.keyframe_id, new_neighbour.keyframe_id])
-      await db.query('INSERT INTO edges (keyframe_id1, keyframe_id0, is_direct) VALUES ($1, $2, true) ON CONFLICT (keyframe_id0, keyframe_id1) DO UPDATE SET is_direct = true;', [neighbour.keyframe_id, new_neighbour.keyframe_id])
+      await db.query('INSERT INTO edges (keyframe_id0, keyframe_id1, type) VALUES ($1, $2, 1) ON CONFLICT (keyframe_id0, keyframe_id1) DO UPDATE SET type = 1;', [neighbour.keyframe_id, new_neighbour.keyframe_id])
+      await db.query('INSERT INTO edges (keyframe_id1, keyframe_id0, type) VALUES ($1, $2, 1) ON CONFLICT (keyframe_id0, keyframe_id1) DO UPDATE SET type = 1;', [neighbour.keyframe_id, new_neighbour.keyframe_id])
     }
   }
 
