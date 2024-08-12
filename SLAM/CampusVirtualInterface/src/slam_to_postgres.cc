@@ -68,7 +68,7 @@ void create_tables_if_not_exist(pqxx::connection& conn) {
             id SERIAL PRIMARY KEY,
             keyframe_id0 INTEGER NOT NULL,
             keyframe_id1 INTEGER NOT NULL,
-            is_direct BOOLEAN DEFAULT false,
+            type INTEGER DEFAULT 2,
             FOREIGN KEY (keyframe_id0) REFERENCES nodes(keyframe_id),
             FOREIGN KEY (keyframe_id1) REFERENCES nodes(keyframe_id),
             CONSTRAINT unique_edge UNIQUE (keyframe_id0, keyframe_id1)
@@ -190,9 +190,9 @@ void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
                 if (!child || child->will_be_erased()) {
                     continue;
                 }
-                txn.exec_params("INSERT INTO edges (keyframe_id0, keyframe_id1, is_direct) VALUES ($1, $2, true) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
+                txn.exec_params("INSERT INTO edges (keyframe_id0, keyframe_id1, type) VALUES ($1, $2, 0) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
                                 keyfrm_id, child->id_);
-                txn.exec_params("INSERT INTO edges (keyframe_id1, keyframe_id0, is_direct) VALUES ($1, $2, true) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
+                txn.exec_params("INSERT INTO edges (keyframe_id1, keyframe_id0, type) VALUES ($1, $2, 0) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
                                 keyfrm_id, child->id_);
             }
         }
@@ -201,9 +201,9 @@ void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
          // Spanning tree
         auto spanning_parent = keyfrm->graph_node_->get_spanning_parent();
         if (spanning_parent) {
-            txn.exec_params("INSERT INTO edges (keyframe_id0, keyframe_id1, is_direct) VALUES ($1, $2, true) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
+            txn.exec_params("INSERT INTO edges (keyframe_id0, keyframe_id1, type) VALUES ($1, $2, 0) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
                             keyfrm_id, spanning_parent->id_);
-            txn.exec_params("INSERT INTO edges (keyframe_id1, keyframe_id0, is_direct) VALUES ($1, $2, true) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
+            txn.exec_params("INSERT INTO edges (keyframe_id1, keyframe_id0, type) VALUES ($1, $2, 0) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
                             keyfrm_id, spanning_parent->id_);
         }
 
@@ -213,9 +213,9 @@ void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
                 if (!loop || loop->will_be_erased()) {
                     continue;
                 }
-                txn.exec_params("INSERT INTO edges (keyframe_id0, keyframe_id1, is_direct) VALUES ($1, $2, true) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
+                txn.exec_params("INSERT INTO edges (keyframe_id0, keyframe_id1, type) VALUES ($1, $2, 1) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
                                 keyfrm_id, loop->id_);
-                txn.exec_params("INSERT INTO edges (keyframe_id1, keyframe_id0, is_direct) VALUES ($1, $2, true) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
+                txn.exec_params("INSERT INTO edges (keyframe_id1, keyframe_id0, type) VALUES ($1, $2, 1) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
                                 keyfrm_id, loop->id_);
             }
         }
@@ -227,9 +227,9 @@ void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
                 if (!covisibility || covisibility->will_be_erased()) {
                     continue;
                 }
-                txn.exec_params("INSERT INTO edges (keyframe_id0, keyframe_id1, is_direct) VALUES ($1, $2, false) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
+                txn.exec_params("INSERT INTO edges (keyframe_id0, keyframe_id1, type) VALUES ($1, $2, 2) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
                                 keyfrm_id, covisibility->id_);
-                txn.exec_params("INSERT INTO edges (keyframe_id1, keyframe_id0, is_direct) VALUES ($1, $2, false) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
+                txn.exec_params("INSERT INTO edges (keyframe_id1, keyframe_id0, type) VALUES ($1, $2, 2) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
                                 keyfrm_id, covisibility->id_);
             }
         }
