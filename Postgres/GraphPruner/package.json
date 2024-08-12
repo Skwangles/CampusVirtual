@@ -13,6 +13,7 @@
   "description": "",
   "dependencies": {
     "pg-pool": "^3.6.2",
+    "sharp": "^0.33.4",
     "three": "^0.167.1"
   },
   "devDependencies": {
