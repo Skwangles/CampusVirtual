@@ -136,10 +136,10 @@ const VirtualTourContent: React.FC<{ currentId:any, setCurrentId:any, currentPoi
 
   const fetchPointData = async (pointId: string) => {
     try {
-      const pointResponse = await axios.get<PointData>(`${API_PREFIX}/point/${pointId}`);
+      const pointResponse = await axios.get<PointData>(`${API_PREFIX}/point/${pointId}/true`);
       const pointData = pointResponse.data;
 
-      const neighboursResponse = await axios.get<NeighbourData[]>(`${API_PREFIX}/point/${pointId}/neighbours/8/2`);
+      const neighboursResponse = await axios.get<NeighbourData[]>(`${API_PREFIX}/point/${pointId}/neighbours/true/8/2`);
       
       const neighboursData = neighboursResponse.data;
 
@@ -223,7 +223,7 @@ const VirtualTour: React.FC = () => {
 
   useEffect(() => {
 	const update = async () => {
-		 const response = await axios.get<NeighbourData[]>(API_PREFIX + "/floor/" + location);
+		 const response = await axios.get<NeighbourData[]>(API_PREFIX + "/floor/" + location + "/true");
 		 const data = response.data.map(val => ({position: calculatePositionFromMatrix(val.pose), name: val.keyframe_id}));
 		 setNeighbours(data);
 	}
