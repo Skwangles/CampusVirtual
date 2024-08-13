@@ -22,12 +22,12 @@ const send_test_image = false
 
 const COORDS_TO_METRES = 40;
 
-app.get('/point/:id/neighbours/:distance_thresh_m/:y_dist_thresh_m', async function (req, res) {
+app.get('/point/:id/neighbours/:is_refined/:distance_thresh_m/:y_dist_thresh_m', async function (req, res) {
   // Used BFS to find all points down the graph within a range
   const minDepth = 3; // case for when point distances are too large to give decent # of options
   const maxDepth = 10;
 
-
+  const is_refined = Boolean(req.params.is_refined);
   const mainPointId = Number(req.params.id)
 
   const distanceThreshold = Number(req.params.distance_thresh_m) / COORDS_TO_METRES;
@@ -44,7 +44,7 @@ app.get('/point/:id/neighbours/:distance_thresh_m/:y_dist_thresh_m', async funct
 
   // Fetch the initial point
   const { rows: [currentPoint] } = await db.query(
-    'SELECT x_trans, y_trans, z_trans FROM nodes WHERE keyframe_id = $1',
+    `SELECT x_trans, y_trans, z_trans FROM ${is_refined ? "refined_" : ""}nodes WHERE keyframe_id = $1`,
     [mainPointId]
   );
   if (!currentPoint) {
@@ -74,8 +74,8 @@ app.get('/point/:id/neighbours/:distance_thresh_m/:y_dist_thresh_m', async funct
               n.z_trans,
               n.ts,
               n.pose
-       FROM edges e
-       JOIN nodes n ON e.keyframe_id1 = n.keyframe_id
+       FROM ${is_refined ? "refined_" : ""}edges e
+       JOIN ${is_refined ? "refined_" : ""}nodes n ON e.keyframe_id1 = n.keyframe_id
        WHERE e.keyframe_id0 = $1`,
       [keyframe_id]
     );
@@ -102,24 +102,27 @@ app.get('/point/:id/neighbours/:distance_thresh_m/:y_dist_thresh_m', async funct
   res.json([...result.values()])
 })
 
-app.get('/floorplan/:id', async function (req: any, res: any) {
-  const id = req.params.id;
+app.get('/floorplan/:id/:is_refined', async function (req: any, res: any) {
+  const id = Number(req.params.id);
+  const is_refined = Boolean(req.params.is_refined);
   const rows = await db.query(`
 			SELECT n.keyframe_id, n.ts, n.pose
-			FROM nodes n 
-			JOIN node_locations l ON l.name = n.location
+			FROM ${is_refined ? "refined_" : ""}nodes n 
+			JOIN ${is_refined ? "refined_" : ""}node_locations l ON l.name = n.location
 			WHERE l.location = 
-				(SELECT location FROM nodes WHERE keyframe_id = $1)`, [id])
+				(SELECT location FROM ${is_refined ? "refined_" : ""}nodes WHERE keyframe_id = $1)`, [id])
   res.json(rows.rows)
 })
 
-app.get('/point/:id', async function (req: { params: { id: any } }, res: { json: (arg0: any) => void }) {
+app.get('/point/:id/:is_refined', async function (req: { params: { id: number, is_refined: boolean } }, res: { json: (arg0: any) => void }) {
+
+  const is_refined = Boolean(req.params.is_refined);
   const rows = await db.query(`
     SELECT n.keyframe_id, n.ts, n.pose, l.location
-    FROM nodes n
-    LEFT JOIN node_locations l ON n.keyframe_id = l.keyframe_id
+    FROM ${is_refined ? "refined_" : ""}nodes n
+    LEFT JOIN ${is_refined ? "refined_" : ""}node_locations l ON n.keyframe_id = l.keyframe_id
     WHERE n.keyframe_id = $1;
-    `, [req.params.id]);
+    `, [Number(req.params.id)]);
 
   res.json(rows.rows[0])
 })

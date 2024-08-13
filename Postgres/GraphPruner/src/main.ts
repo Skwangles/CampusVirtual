@@ -41,7 +41,7 @@ async function calculateImageSharpness(filePath: string): Promise<number> {
 
 async function getNextKeyframe(db: any, currentId: number) {
   let { rows: [nextFrame] }: { rows: Array<{ keyframe_id: string, degree: number, ts: number }> } = await db.query(
-    `SELECT n.keyframe_id, n.ts, COUNT(e1.keyframe_id1) as degree FROM nodes n JOIN edges e1 ON n.keyframe_id = e1.keyframe_id0
+    `SELECT n.keyframe_id, n.ts, COUNT(e1.keyframe_id1) as degree FROM refined_nodes n JOIN refined_edges e1 ON n.keyframe_id = e1.keyframe_id0
             WHERE n.keyframe_id > $1 AND (e1.type = 0 OR e1.type = 1)  GROUP BY n.keyframe_id, n.ts LIMIT 1`, [currentId]
   );
   return nextFrame;
@@ -99,7 +99,6 @@ async function useGreedyStrategy(db: any, keep_degree_2_plus = false, image_dire
         }
       }
     }
-
     const result = await getNextKeyframe(db, currentKeyframeId)
     if (!result) break;
 
@@ -250,9 +249,25 @@ function calculateCellIndex(x: number, y: number, z: number, cellsize = TARGET_C
 //   return result;
 // }
 
+
+async function copyDenseToRefined(db: any) {
+  await db.query("DROP TABLE IF EXISTS refined_edges CASCADE;")
+  await db.query("DROP TABLE IF EXISTS refined_node_locations CASCADE;")
+  await db.query("DROP TABLE IF EXISTS refined_nodes CASCADE;")
+  await db.query("SELECT * INTO refined_nodes FROM nodes;")
+  await db.query("SELECT * INTO refined_node_locations FROM node_locations;")
+  await db.query("SELECT * INTO refined_edges FROM edges;")
+
+  await db.query("ALTER TABLE refined_edges ADD CONSTRAINT unique_refined_edge UNIQUE (keyframe_id0, keyframe_id1)")
+}
+
+
 // Main function to prune nodes
 async function prune() {
 
+  // await createTables(db);
+  await copyDenseToRefined(db);
+  console.log("Copied across nodes, edges and node_locations")
   try {
     await db.query('BEGIN');
     // Find the first node in the list
@@ -269,16 +284,15 @@ async function prune() {
 
 // Helper function to get node position
 async function getNodePosition(db: any, keyframeId: number, use_trans = true) {
-  const result = (await db.query(
-    'SELECT pose, x_trans, y_trans, z_trans FROM nodes WHERE keyframe_id = $1 LIMIT 1;',
-    [keyframeId]
-  )).rows;
-
-  if (!result || result.length == 0) {
+  const result = await db.query(
+    'SELECT pose, x_trans, y_trans, z_trans FROM refined_nodes WHERE keyframe_id = $1 LIMIT 1;',
+    [keyframeId]);
+  const positionInfo = result.rows;
+  if (!positionInfo || positionInfo.length == 0) {
     throw new Error("Could not find keyframe of ID: " + keyframeId)
   }
 
-  const node_info = result[0];
+  const node_info = positionInfo[0];
   if (use_trans) {
     const ret = [node_info.x_trans * COORDS_TO_METRES, node_info.y_trans * COORDS_TO_METRES, node_info.z_trans * COORDS_TO_METRES]
     if (!ret) throw new Error("Return result was Null of getNodePosition")
@@ -293,9 +307,9 @@ async function getNodePosition(db: any, keyframeId: number, use_trans = true) {
 // Helper function to get neighbours
 async function getNeighbours(db: any, keyframeId: number) {
   const result = await db.query(
-    `SELECT e.keyframe_id1 as keyframe_id, n.ts, COUNT(e1.keyframe_id1) as degree FROM edges e 
-              JOIN edges e1 ON e.keyframe_id1 = e1.keyframe_id0
-              JOIN nodes n ON e.keyframe_id1 = n.keyframe_id 
+    `SELECT e.keyframe_id1 as keyframe_id, n.ts, COUNT(e1.keyframe_id1) as degree FROM refined_edges e 
+              JOIN refined_edges e1 ON e.keyframe_id1 = e1.keyframe_id0
+              JOIN refined_nodes n ON e.keyframe_id1 = n.keyframe_id 
               WHERE e.keyframe_id0 = $1 AND (e.type = 0 OR e.type = 1) AND (e1.type = 0 OR e1.type = 1) 
               GROUP BY e.keyframe_id1, n.ts`,
     [keyframeId]
@@ -322,24 +336,24 @@ function calculateDistance(pos1: number[], pos2: number[]): number {
 
 // Helper function to delete a node and its edges
 async function replaceNode(db: any, keyframeId: number) {
-  const direct_neighbours = (await db.query('SELECT keyframe_id1 as keyframe_id FROM edges WHERE keyframe_id0 = $1 AND (type = 0 OR type = 1)', [keyframeId])).rows;
+  const direct_neighbours = (await db.query('SELECT keyframe_id1 as keyframe_id FROM refined_edges WHERE keyframe_id0 = $1 AND (type = 0 OR type = 1)', [keyframeId])).rows;
 
   for (const neighbour_id in direct_neighbours) {
     const neighbour = direct_neighbours[neighbour_id]
     for (const new_neighbour of direct_neighbours.slice(neighbour_id)) {
       if (new_neighbour.keyframe_id == neighbour.keyframe_id) continue;
-      await db.query('INSERT INTO edges (keyframe_id0, keyframe_id1, type) VALUES ($1, $2, 1) ON CONFLICT (keyframe_id0, keyframe_id1) DO UPDATE SET type = 1;', [neighbour.keyframe_id, new_neighbour.keyframe_id])
-      await db.query('INSERT INTO edges (keyframe_id1, keyframe_id0, type) VALUES ($1, $2, 1) ON CONFLICT (keyframe_id0, keyframe_id1) DO UPDATE SET type = 1;', [neighbour.keyframe_id, new_neighbour.keyframe_id])
+      await db.query('INSERT INTO refined_edges (keyframe_id0, keyframe_id1, type) VALUES ($1, $2, 1) ON CONFLICT (keyframe_id0, keyframe_id1) DO UPDATE SET type = 1;', [neighbour.keyframe_id, new_neighbour.keyframe_id])
+      await db.query('INSERT INTO refined_edges (keyframe_id1, keyframe_id0, type) VALUES ($1, $2, 1) ON CONFLICT (keyframe_id0, keyframe_id1) DO UPDATE SET type = 1;', [neighbour.keyframe_id, new_neighbour.keyframe_id])
     }
   }
 
   await db.query(
-    'DELETE FROM edges WHERE keyframe_id0 = $1 OR keyframe_id1 = $1;',
+    'DELETE FROM refined_edges WHERE keyframe_id0 = $1 OR keyframe_id1 = $1;',
     [keyframeId]
   );
-  await db.query('DELETE FROM node_locations WHERE keyframe_id = $1', [keyframeId]);
+  await db.query('DELETE FROM refined_node_locations WHERE keyframe_id = $1', [keyframeId]);
   await db.query(
-    'DELETE FROM nodes WHERE keyframe_id = $1;',
+    'DELETE FROM refined_nodes WHERE keyframe_id = $1;',
     [keyframeId]
   );
 }
