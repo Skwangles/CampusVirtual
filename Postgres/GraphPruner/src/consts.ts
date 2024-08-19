@@ -1,0 +1,4 @@
+export const COORDS_TO_METRES = 10;
+export const TARGET_CLOSENESS = 8;
+export const ALWAYS_MERGE_CLOSENESS = 3;
+export const RANGE_OF_NEIGHBOUR_INTERSECTION = 15;
