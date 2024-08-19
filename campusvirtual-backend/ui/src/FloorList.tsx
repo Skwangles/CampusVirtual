@@ -38,12 +38,6 @@ const FloorList: React.FC<FloorListProps> = ({ floors, setManualFloorSelect }) =
               </li>
             ))}
           </ul>
-
-          {selectedFloor && (
-            <div className="dialog">
-              <p>You selected: {selectedFloor}</p>
-            </div>
-          )}
         </div>
       )}
     </div>

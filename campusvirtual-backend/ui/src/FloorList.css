@@ -1,6 +1,6 @@
 .floor-list {
   position: fixed;
-  bottom: 0;
+  top: 0;
   left: 0;
   background: rgba(0, 0, 0, 0.2); /* Transparent gray background */
   padding: 10px;
