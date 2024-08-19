@@ -20,18 +20,18 @@ app.get('/', function (req, res) {
 
 const send_test_image = false
 
-const COORDS_TO_METRES = 40;
+const COORDS_TO_METRES = 10;
 
 app.get('/point/:id/neighbours/:is_refined/:distance_thresh_m/:y_dist_thresh_m', async function (req, res) {
   // Used BFS to find all points down the graph within a range
-  const minDepth = 3; // case for when point distances are too large to give decent # of options
-  const maxDepth = 10;
+  const minDepth = 1; // case for when point distances are too large to give decent # of options
+  const maxDepth = 5;
 
   const is_refined = Boolean(req.params.is_refined);
   const mainPointId = Number(req.params.id)
 
-  const distanceThreshold = Number(req.params.distance_thresh_m) / COORDS_TO_METRES;
-  const yDistThresh = Number(req.params.y_dist_thresh_m) / COORDS_TO_METRES
+  const distanceThreshold = Number(req.params.distance_thresh_m);
+  const yDistThresh = Number(req.params.y_dist_thresh_m);
 
   if (isNaN(mainPointId) || isNaN(distanceThreshold) || isNaN(yDistThresh)) {
     res.status(400).send("Invalid params").end();
@@ -39,7 +39,7 @@ app.get('/point/:id/neighbours/:is_refined/:distance_thresh_m/:y_dist_thresh_m',
   }
 
   const getDistance = (x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) => {
-    return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2) + Math.pow(z2 - z1, 2));
+    return [Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(z2 - z1, 2)), Math.abs(y2 - y1)];
   };
 
   // Fetch the initial point
@@ -84,8 +84,10 @@ app.get('/point/:id/neighbours/:is_refined/:distance_thresh_m/:y_dist_thresh_m',
       const { keyframe_id: neighborId, x_trans: x2, y_trans: y2, z_trans: z2 } = neighbour;
 
       // Check distance
-      const distance = getDistance(x1 * COORDS_TO_METRES, y1 * COORDS_TO_METRES, z1 * COORDS_TO_METRES, x2 * COORDS_TO_METRES, y2 * COORDS_TO_METRES, z2 * COORDS_TO_METRES);
-      if (distance < distanceThreshold || depth < minDepth) {
+      const [distance, y_dist] = getDistance(x1 * COORDS_TO_METRES, y1 * COORDS_TO_METRES, z1 * COORDS_TO_METRES, x2 * COORDS_TO_METRES, y2 * COORDS_TO_METRES, z2 * COORDS_TO_METRES);
+
+      if ((distance < distanceThreshold && y_dist < yDistThresh) || depth < minDepth) {
+
         if (Number(mainPointId) !== Number(neighborId) && !result.has(neighbour)) {
           result.add(neighbour);
         }
