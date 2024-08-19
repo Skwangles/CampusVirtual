@@ -1,7 +1,7 @@
 import db from "./db";
 import * as THREE from "three";
 import sharp from 'sharp';
-import { COORDS_TO_METRES, TARGET_CLOSENESS, ALWAYS_MERGE_CLOSENESS, RANGE_OF_NEIGHBOUR_INTERSECTION } from "./consts"
+import { COORDS_TO_METRES, TARGET_CLOSENESS, ALWAYS_MERGE_CLOSENESS, RANGE_OF_NEIGHBOUR_INTERSECTION, Y_DIST_THRESHOLD } from "./consts"
 
 function calculatePositionFromMatrix(
   matrix: number[]
@@ -90,7 +90,9 @@ async function useGreedyTripleRingStrategy(db: any, keep_degree_2_plus = false, 
         const ts = neighbour.ts;
         const neighbourPosition = await getNodePosition(db, neighbourId);
         const distance = calculateXZDistance(currentPosition, neighbourPosition);
+        const yDistance = Math.abs(neighbourPosition[1] - currentPosition[1])
 
+        if (yDistance > Y_DIST_THRESHOLD) continue;
 
         if (distance < TARGET_CLOSENESS || distance < ALWAYS_MERGE_CLOSENESS) {
 
@@ -122,7 +124,6 @@ async function useGreedyTripleRingStrategy(db: any, keep_degree_2_plus = false, 
     const result = await getNextKeyframe(db, currentKeyframeId)
     if (!result) break;
 
-    currentDegree = Number(result.degree)
     currentKeyframeId = Number(result.keyframe_id)
     currentTs = Number(result.ts)
 
