@@ -5,10 +5,13 @@ import * as THREE from 'three';
 import axios from 'axios';
 import CameraRotationControls from './RotationController';
 import Map from './Map';
+import FloorList from './FloorList';
 
 const COORDS_TO_METRES = 40
 const showMap = false;
+const showList = true;
 const API_PREFIX = ""; // Use to specify API server different to frontend e.g. localhost:3001
+const addQuotationMarks = false;
 
 interface HotspotProps {
   position: [number, number, number];
@@ -50,9 +53,8 @@ const Hotspot: React.FC<HotspotProps> = ({ position, onClick, rotation, image_id
     <>
     <mesh position={position} rotation={rotation} onClick={onClick} receiveShadow>
       <sphereGeometry args={[sphereSize, 20, 20]} />
-      
-      <meshStandardMaterial color={"#E1251B"} /*map={texture}*//> // wireframe wireframeLinewidth={0.5}
-    </mesh>);
+      <meshStandardMaterial color={"#E1251B"} />
+    </mesh>;
     <mesh position={position} rotation={rotation} onClick={onClick}>
     <sphereGeometry args={[outlineSize, 20, 20]} />
     <meshBasicMaterial color={"#FFFFFF"} side={THREE.BackSide}/>
@@ -75,7 +77,7 @@ const SphereWithHotspots: React.FC<SphereWithHotspotsProps> = ({ position, textu
     setCurrentTexture(new THREE.TextureLoader().load(`${API_PREFIX}/image/lores/${textureUrl}`))
   
     new THREE.TextureLoader()
-      .loadAsync(`${API_PREFIX}/image/hires/${textureUrl}`, (progress) => {console.log("Progress", progress)})
+      .loadAsync(`${API_PREFIX}/image/hires/${textureUrl}`)
       .then((texture) => setCurrentTexture(texture))
       .catch((err) => console.log(err));
   }, [textureUrl])
@@ -121,7 +123,7 @@ function getYRotation(matrix) {
   return -rotationY; // Rotation in radians
 }
 
-const VirtualTourContent: React.FC<{ currentId:any, setCurrentId:any, currentPoint: any, setCurrentPoint: any, neighbours: any, setNeighbours: any }> = ({ currentId, setCurrentId, currentPoint, setCurrentPoint, neighbours, setNeighbours}) => {
+const VirtualTourContent: React.FC<any> = ({ currentId, setCurrentId, currentPoint, setCurrentPoint, neighbours, setNeighbours, isRefined}) => {
 
   const [hotspots, setHotspots] = useState<HotspotObj[]>([])
   const [currentImage, setCurrentImage] = useState<string | null>(null);
@@ -139,7 +141,7 @@ const VirtualTourContent: React.FC<{ currentId:any, setCurrentId:any, currentPoi
       const pointResponse = await axios.get<PointData>(`${API_PREFIX}/point/${pointId}/true`);
       const pointData = pointResponse.data;
 
-      const neighboursResponse = await axios.get<NeighbourData[]>(`${API_PREFIX}/point/${pointId}/neighbours/true/8/2`);
+      const neighboursResponse = await axios.get<NeighbourData[]>(`${API_PREFIX}/point/${pointId}/neighbours/${Boolean(isRefined)}/8/6`);
       
       const neighboursData = neighboursResponse.data;
 
@@ -172,8 +174,6 @@ const VirtualTourContent: React.FC<{ currentId:any, setCurrentId:any, currentPoi
 
       const newRotation = getYRotation(pointData.pose); 
       setRotation([0, newRotation, 0]);
-
-      console.log(currentPoint, newRotation, newPosition)
     } catch (error) {
       console.error("Error fetching point data:", error);
     }
@@ -200,8 +200,12 @@ const VirtualTour: React.FC = () => {
     return defaultInitId;
   });
   const [currentPoint, setCurrentPoint] = useState<PointData>({pose: [], ts:"", keyframe_id:300, location: "" });
-  const [neighbours, setNeighbours] = useState<any[]>([]);
+  const [floorWideNeighbours, setFloorWideNeighbours] = useState<any[]>([]);
   const [locationGroup, setLocationGroup] = useState<string>("");
+  const [isRefined, setIsRefined] = useState<boolean>(true);
+  const [manualFloorSelected, setManualFloorSelect] = useState<string>("");
+
+  const [allFloorNames, setAllFloorNames] = useState<string[]>([])
 
   const [camRotation, setCameraRotation] = useState<any>(() => {
     if (params.has("yaw") || params.has("pitch")){
@@ -209,6 +213,36 @@ const VirtualTour: React.FC = () => {
     }
     return { yaw: 0, pitch: 0}
   });
+
+  useEffect(() => {
+    // RUN ON FIRST LOAD
+    axios.get<{location: string}[]>(API_PREFIX + "/floors").then(result => {
+      console.log("Floors", result.data)
+      setAllFloorNames(result.data.map(val => String(val.location)))
+    })
+
+  }, [])
+
+  useEffect(() => {
+
+    console.log("Manual Floor Selected", manualFloorSelected)
+    if (manualFloorSelected == "") return
+    let requestedFloor = manualFloorSelected
+    if(addQuotationMarks){
+      requestedFloor = "\"" + manualFloorSelected + "\"";
+    }
+
+    console.log("Fetching", requestedFloor)
+
+    axios.get<{keyframe_id: number}>(API_PREFIX + "/floor/" + requestedFloor + "/point").then(value => {
+      console.log(value.data)
+      let result = value.data.keyframe_id
+      if(isNaN(Number(result))) return;
+      console.log("Setting ID to ", result)
+      setCurrentId(Number(result).toString())
+    }).catch((reason) => console.error("Floor could not be found: " + reason.toString()))
+  }, [manualFloorSelected])
+
 
   useEffect(() =>{
     params.set("id", currentId)
@@ -223,9 +257,12 @@ const VirtualTour: React.FC = () => {
 
   useEffect(() => {
 	const update = async () => {
-		 const response = await axios.get<NeighbourData[]>(API_PREFIX + "/floor/" + location + "/true");
+      if (locationGroup == "") return;
+
+		 const response = await axios.get<NeighbourData[]>(API_PREFIX + "/floor/" + locationGroup + "/neighbours");
+     console.log(response)
 		 const data = response.data.map(val => ({position: calculatePositionFromMatrix(val.pose), name: val.keyframe_id}));
-		 setNeighbours(data);
+		 setFloorWideNeighbours(data);
 	}
 
 	update();
@@ -247,7 +284,13 @@ const VirtualTour: React.FC = () => {
   return (
     <>
     <div style={{position: "fixed", bottom: 0, left: 0, background: "black", opacity: 0.6, zIndex: 99 }}>Location: {currentPoint?.location}</div>
-    {showMap && (<Map imageSrc='test.jpg' pointsOfInterest={neighbours}/>)}
+    <div style={{position: "fixed", top: 0, right: 0, zIndex: 9}}> Show Pruned: <input id="isrefined_chkbx" type="checkbox"  checked={isRefined} onChange={(event) =>{
+      const checkbox = document.getElementById("isrefined_chkbx")
+      //@ts-ignore
+      setIsRefined(checkbox.checked)
+    }}/></div>
+    {showMap && (<Map imageSrc='test.jpg' pointsOfInterest={floorWideNeighbours}/>)}
+    {showList && allFloorNames.length > 0 && (<FloorList floors={allFloorNames} setManualFloorSelect={setManualFloorSelect}/>)}
     <div style={{ width: "100vw", height: "100vh" }}>
     <Canvas camera={{ position: [0, 0, 10], fov: 75}} frameloop='demand' shadows>
     <ambientLight
@@ -257,7 +300,7 @@ const VirtualTour: React.FC = () => {
         castShadow
       />
       <CameraRotationControls initCameraRotation={camRotation} setCameraRotation={setCameraRotation} />
-      <VirtualTourContent currentId={currentId} setCurrentId={setCurrentId} currentPoint={currentPoint} setCurrentPoint={setCurrentPoint} setNeighbours={setNeighbours} neighbours={neighbours} />
+      <VirtualTourContent currentId={currentId} setCurrentId={setCurrentId} currentPoint={currentPoint} setCurrentPoint={setCurrentPoint} setNeighbours={setFloorWideNeighbours} neighbours={floorWideNeighbours} isRefined={isRefined} />
     </Canvas>
     </div>
     </>
