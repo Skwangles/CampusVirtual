@@ -27,7 +27,8 @@ app.get('/point/:id/neighbours/:is_refined/:distance_thresh_m/:y_dist_thresh_m',
   const minDepth = 1; // case for when point distances are too large to give decent # of options
   const maxDepth = 5;
 
-  const is_refined = Boolean(req.params.is_refined);
+  const is_refined = Boolean(req.params.is_refined === 'true');
+  console.log(is_refined, req.params)
   const mainPointId = Number(req.params.id)
 
   const distanceThreshold = Number(req.params.distance_thresh_m);
@@ -91,7 +92,7 @@ app.get('/point/:id/neighbours/:is_refined/:distance_thresh_m/:y_dist_thresh_m',
 
         if (Number(mainPointId) !== Number(neighbourId) && !result.has(neighbourId)) {
           result.add(neighbourId);
-          output.push(neighbourId)
+          output.push(neighbour)
         }
 
         if (!visited.has(neighbourId)) {
@@ -102,15 +103,13 @@ app.get('/point/:id/neighbours/:is_refined/:distance_thresh_m/:y_dist_thresh_m',
     }
   }
 
-  console.log([...result.values()].map((val: any) => val.keyframe_id))
-  res.json([...result.values()])
-
+  res.json(output)
 })
 
 
-app.get('/point/:id/:is_refined', async function (req: { params: { id: number, is_refined: boolean } }, res: { json: (arg0: any) => void }) {
+app.get('/point/:id/:is_refined', async function (req: { params: { id: number, is_refined: string } }, res: { json: (arg0: any) => void }) {
 
-  const is_refined = Boolean(req.params.is_refined);
+  const is_refined = Boolean(req.params.is_refined == 'true');
   const rows = await db.query(`
     SELECT n.keyframe_id, n.ts, n.pose, l.location
     FROM ${is_refined ? "refined_" : ""}nodes n
@@ -122,12 +121,12 @@ app.get('/point/:id/:is_refined', async function (req: { params: { id: number, i
 })
 
 app.get('/floors', async function (req: any, res: any) {
-  res.json(await db.query("SELECT DISTINCT location FROM refined_node_locations"))
+  res.json((await db.query("SELECT DISTINCT location FROM refined_node_locations")).rows)
 })
 
 
 app.get('/floor/:floor/neighbours/', async function (req: any, res: any) {
-  const neighbours = await db.query("SELECT n.keyframe_id FROM refined_nodes n JOIN refined_node_locations l ON n.keyframe_id = l.keyframe_id WHERE l.location = $1", [req.params.floor]);
+  const neighbours = await db.query("SELECT n.keyframe_id, n.pose FROM refined_nodes n JOIN refined_node_locations l ON n.keyframe_id = l.keyframe_id WHERE l.location = $1", [req.params.floor]);
   if (neighbours.rows.length == 0) {
     res.status(404).send("Floor not found").end()
     return;
@@ -135,19 +134,23 @@ app.get('/floor/:floor/neighbours/', async function (req: any, res: any) {
   res.json(neighbours.rows)
 })
 
-app.get('/floor/:floor/point', async function (req: any, res: any) {
+app.get('/floor/:floor/point/', async function (req: any, res: any) {
+  console.log("Hit floor endpoint")
   // Get FIRST node which has that location
-  const nodeWithSpecialLabel = await db.query("SELECT keyframe_id FROM refined_nodes WHERE label = $1", [req.params.floor])
+  const nodeWithSpecialLabel = await db.query("SELECT keyframe_id, pose FROM refined_nodes WHERE label = $1", [req.params.floor])
 
   if (nodeWithSpecialLabel.rows.length != 0) {
+    console.log("Found a label", nodeWithSpecialLabel)
     res.json(nodeWithSpecialLabel.rows[0])
     return;
   }
   const firstNodeWithLocation = await db.query("SELECT n.keyframe_id FROM refined_nodes n JOIN refined_node_locations l ON n.keyframe_id = l.keyframe_id WHERE l.location = $1 LIMIT 1", [req.params.floor])
   if (firstNodeWithLocation.rows.length > 0) {
-    res.json(firstNodeWithLocation.rows)
+    console.log("Returning rows")
+    res.json(firstNodeWithLocation.rows[0])
   }
   else {
+    console.log("Could not find")
     res.status(404).send("Could not find any nodes with that location").end();
   }
 })
