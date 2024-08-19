@@ -40,11 +40,13 @@
 }
 
 .dialog {
-  position: absolute;
-  bottom: 100%;
-  left: 0;
+  position: fixed;
+  top: 0px;
+  left: 0px;
   background: white;
+  color: black;
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
+  z-index: 9999;
 }

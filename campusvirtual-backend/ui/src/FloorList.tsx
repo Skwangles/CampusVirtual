@@ -1,19 +1,24 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './FloorList.css'; // Import your CSS file here
 
 // Type definitions
 interface FloorListProps {
   floors: string[];
+    setManualFloorSelect: any;
 }
 
-const FloorList: React.FC<FloorListProps> = ({ floors }) => {
+const FloorList: React.FC<FloorListProps> = ({ floors, setManualFloorSelect }) => {
   const [isOpen, setIsOpen] = useState(true);
-  const [selectedFloor, setSelectedFloor] = useState<string | null>(null);
+  const [selectedFloor, setSelectedFloor] = useState<string>("");
 
   const handleFloorClick = (floor: string) => {
     setSelectedFloor(floor);
-    setTimeout(() => setSelectedFloor(null), 3000); // Hide dialog after 3 seconds
+    // setTimeout(() => setSelectedFloor(""), 3000); // Hide dialog after 3 seconds
   };
+
+  useEffect(() => {
+    setManualFloorSelect(selectedFloor)
+  }, [selectedFloor])
 
   return (
     <div>
