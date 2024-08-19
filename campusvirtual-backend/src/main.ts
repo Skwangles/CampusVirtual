@@ -58,7 +58,8 @@ app.get('/point/:id/neighbours/:is_refined/:distance_thresh_m/:y_dist_thresh_m',
   // Initialize a queue for BFS and a set to keep track of visited nodes
   const queue: { keyframe_id: number, depth: number }[] = [{ keyframe_id: mainPointId, depth: 0 }];
   const visited = new Set<number>();
-  const result = new Set(); // keyframe_id => list of neighbors
+  const result = new Set<number>(); // keyframe_id => list of neighbors
+  const output = []
 
   visited.add(mainPointId);
 
@@ -81,20 +82,21 @@ app.get('/point/:id/neighbours/:is_refined/:distance_thresh_m/:y_dist_thresh_m',
     );
 
     for (const neighbour of neighbours) {
-      const { keyframe_id: neighborId, x_trans: x2, y_trans: y2, z_trans: z2 } = neighbour;
+      const { keyframe_id: neighbourId, x_trans: x2, y_trans: y2, z_trans: z2 } = neighbour;
 
       // Check distance
       const [distance, y_dist] = getDistance(x1 * COORDS_TO_METRES, y1 * COORDS_TO_METRES, z1 * COORDS_TO_METRES, x2 * COORDS_TO_METRES, y2 * COORDS_TO_METRES, z2 * COORDS_TO_METRES);
 
       if ((distance < distanceThreshold && y_dist < yDistThresh) || depth < minDepth) {
 
-        if (Number(mainPointId) !== Number(neighborId) && !result.has(neighbour)) {
-          result.add(neighbour);
+        if (Number(mainPointId) !== Number(neighbourId) && !result.has(neighbourId)) {
+          result.add(neighbourId);
+          output.push(neighbourId)
         }
 
-        if (!visited.has(neighborId)) {
-          visited.add(neighborId);
-          queue.push({ keyframe_id: neighborId, depth: depth + 1 });
+        if (!visited.has(neighbourId)) {
+          visited.add(neighbourId);
+          queue.push({ keyframe_id: neighbourId, depth: depth + 1 });
         }
       }
     }
@@ -102,6 +104,52 @@ app.get('/point/:id/neighbours/:is_refined/:distance_thresh_m/:y_dist_thresh_m',
 
   console.log([...result.values()].map((val: any) => val.keyframe_id))
   res.json([...result.values()])
+
+})
+
+
+app.get('/point/:id/:is_refined', async function (req: { params: { id: number, is_refined: boolean } }, res: { json: (arg0: any) => void }) {
+
+  const is_refined = Boolean(req.params.is_refined);
+  const rows = await db.query(`
+    SELECT n.keyframe_id, n.ts, n.pose, l.location
+    FROM ${is_refined ? "refined_" : ""}nodes n
+    LEFT JOIN ${is_refined ? "refined_" : ""}node_locations l ON n.keyframe_id = l.keyframe_id
+    WHERE n.keyframe_id = $1;
+    `, [Number(req.params.id)]);
+
+  res.json(rows.rows[0])
+})
+
+app.get('/floors', async function (req: any, res: any) {
+  res.json(await db.query("SELECT DISTINCT location FROM refined_node_locations"))
+})
+
+
+app.get('/floor/:floor/neighbours/', async function (req: any, res: any) {
+  const neighbours = await db.query("SELECT n.keyframe_id FROM refined_nodes n JOIN refined_node_locations l ON n.keyframe_id = l.keyframe_id WHERE l.location = $1", [req.params.floor]);
+  if (neighbours.rows.length == 0) {
+    res.status(404).send("Floor not found").end()
+    return;
+  }
+  res.json(neighbours.rows)
+})
+
+app.get('/floor/:floor/point', async function (req: any, res: any) {
+  // Get FIRST node which has that location
+  const nodeWithSpecialLabel = await db.query("SELECT keyframe_id FROM refined_nodes WHERE label = $1", [req.params.floor])
+
+  if (nodeWithSpecialLabel.rows.length != 0) {
+    res.json(nodeWithSpecialLabel.rows[0])
+    return;
+  }
+  const firstNodeWithLocation = await db.query("SELECT n.keyframe_id FROM refined_nodes n JOIN refined_node_locations l ON n.keyframe_id = l.keyframe_id WHERE l.location = $1 LIMIT 1", [req.params.floor])
+  if (firstNodeWithLocation.rows.length > 0) {
+    res.json(firstNodeWithLocation.rows)
+  }
+  else {
+    res.status(404).send("Could not find any nodes with that location").end();
+  }
 })
 
 app.get('/floorplan/:id/:is_refined', async function (req: any, res: any) {
@@ -116,18 +164,6 @@ app.get('/floorplan/:id/:is_refined', async function (req: any, res: any) {
   res.json(rows.rows)
 })
 
-app.get('/point/:id/:is_refined', async function (req: { params: { id: number, is_refined: boolean } }, res: { json: (arg0: any) => void }) {
-
-  const is_refined = Boolean(req.params.is_refined);
-  const rows = await db.query(`
-    SELECT n.keyframe_id, n.ts, n.pose, l.location
-    FROM ${is_refined ? "refined_" : ""}nodes n
-    LEFT JOIN ${is_refined ? "refined_" : ""}node_locations l ON n.keyframe_id = l.keyframe_id
-    WHERE n.keyframe_id = $1;
-    `, [Number(req.params.id)]);
-
-  res.json(rows.rows[0])
-})
 
 const extension = ".png"
 app.get('/image/:detail/:ts', function (req: { params: { ts: string, detail: string } }, res) {
