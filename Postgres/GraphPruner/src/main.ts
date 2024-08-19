@@ -1,11 +1,11 @@
 import db from "./db";
 import * as THREE from "three";
-import * as fs from 'fs';
-import * as path from 'path';
-import sharp, { strategy } from 'sharp';
+import sharp from 'sharp';
 
-const COORDS_TO_METRES = 40;
+const COORDS_TO_METRES = 10;
 const TARGET_CLOSENESS = 8;
+const ALWAYS_MERGE_CLOSENESS = 3;
+const RANGE_OF_NEIGHBOUR_INTERSECTION = 15;
 
 function calculatePositionFromMatrix(
   matrix: number[]
@@ -108,7 +108,88 @@ async function useGreedyStrategy(db: any, keep_degree_2_plus = false, image_dire
   }
 }
 
+function is_neighbours_outside_intersection(neighbours: { keyframe_id: number }[], currentPosition: [number, number, number]) {
+  return neighbours.some(async (val) => {
+    const neighbourPosition = await getNodePosition(db, val.keyframe_id);
+    const distance = calculateDistance(currentPosition, neighbourPosition);
+    if (distance > RANGE_OF_NEIGHBOUR_INTERSECTION) {
+      return true;
+    }
+  });
+}
 
+
+/**
+ * Loop through each node, if a node is within 5m keep the least blurry
+ * (except if is a junction point, then never remove that one) 
+ */
+async function useGreedyTripleRingStrategy(db: any, keep_degree_2_plus = false, image_directory = "/home/skwangles/Documents/Honours/CampusVirtual/pictures/", extension = ".png") {
+  const firstFrame = await getNextKeyframe(db, -1);
+  if (!firstFrame) {
+    throw new Error("Could not find the first frame!")
+  }
+
+  let currentDegree = Number(firstFrame.degree)
+  let currentKeyframeId = Number(firstFrame.keyframe_id)
+  let currentTs = Number(firstFrame.ts);
+
+  console.log('First keyframe ID', currentKeyframeId);
+
+
+  // Loop through every node
+  while (currentKeyframeId != null) {
+    let currentPosition = await getNodePosition(db, currentKeyframeId);
+    let is_deleted = false;
+    console.log('Current:', currentKeyframeId);
+
+    // Find the direct neighbours 
+    const neighbours = await getNeighbours(db, currentKeyframeId);
+    for (const neighbour of neighbours) {
+      const neighbourId = neighbour.keyframe_id;
+      const ts = neighbour.ts;
+      if (keep_degree_2_plus && neighbour.degree > 2 && currentDegree > 2) {
+        // Can only delete degree <= 2 to avoid ruining intersections
+        console.log("Skipping:", neighbour, " and ", currentDegree)
+        continue
+      }
+
+      const neighbourPosition = await getNodePosition(db, neighbourId);
+      const distance = calculateDistance(currentPosition, neighbourPosition);
+
+
+      if (distance < TARGET_CLOSENESS || distance < ALWAYS_MERGE_CLOSENESS) {
+
+        const currentSharpness = await calculateImageSharpness(`${image_directory}${Number(currentTs).toFixed(5)}${extension}`);
+        const neighbourSharpness = await calculateImageSharpness(`${image_directory}${Number(ts).toFixed(5)}${extension}`);
+
+        // TODO: Maybe replace the intersection with the least blurry? Update that node's ts and pose
+        if ((keep_degree_2_plus && currentDegree > 2) || neighbourSharpness < currentSharpness) {
+          console.log('Deleting neighbour', neighbourId, 'with sharpness', neighbourSharpness);
+
+          // If 'current_node' is_deleted, then indicates one neighbour has deemed itself close enough
+          if (!is_deleted && distance > ALWAYS_MERGE_CLOSENESS && is_neighbours_outside_intersection((await getNeighbours(db, neighbourId)), currentPosition)) continue;
+
+          await replaceNode(db, neighbourId);
+        } else {
+          console.log('Deleting current node', currentKeyframeId, 'with sharpness', currentSharpness);
+          if (is_deleted) continue;
+
+          is_deleted = true
+
+          if (distance > ALWAYS_MERGE_CLOSENESS && is_neighbours_outside_intersection((await getNeighbours(db, currentKeyframeId)), neighbourPosition)) continue; // TODO: Make refetching neighbours less wasteful - note: can't just put 'neighbours' in as some may be deleted
+
+          await replaceNode(db, currentKeyframeId);
+        }
+      }
+    }
+    const result = await getNextKeyframe(db, currentKeyframeId)
+    if (!result) break;
+
+    currentDegree = Number(result.degree)
+    currentKeyframeId = Number(result.keyframe_id)
+    currentTs = Number(result.ts)
+  }
+}
 
 
 function calculateCellIndex(x: number, y: number, z: number, cellsize = TARGET_CLOSENESS, scale = COORDS_TO_METRES) {
@@ -272,7 +353,7 @@ async function prune() {
     await db.query('BEGIN');
     // Find the first node in the list
 
-    await useGreedyStrategy(db)
+    await useGreedyTripleRingStrategy(db)
     console.log('Committing');
     await db.query('COMMIT');
   } catch (e) {
@@ -294,7 +375,7 @@ async function getNodePosition(db: any, keyframeId: number, use_trans = true) {
 
   const node_info = positionInfo[0];
   if (use_trans) {
-    const ret = [node_info.x_trans * COORDS_TO_METRES, node_info.y_trans * COORDS_TO_METRES, node_info.z_trans * COORDS_TO_METRES]
+    const ret: [number, number, number] = [node_info.x_trans * COORDS_TO_METRES, node_info.y_trans * COORDS_TO_METRES, node_info.z_trans * COORDS_TO_METRES]
     if (!ret) throw new Error("Return result was Null of getNodePosition")
     return ret;
   }
@@ -305,7 +386,7 @@ async function getNodePosition(db: any, keyframeId: number, use_trans = true) {
 }
 
 // Helper function to get neighbours
-async function getNeighbours(db: any, keyframeId: number) {
+async function getNeighbours(db: any, keyframeId: number): Promise<any[]> {
   const result = await db.query(
     `SELECT e.keyframe_id1 as keyframe_id, n.ts, COUNT(e1.keyframe_id1) as degree FROM refined_edges e 
               JOIN refined_edges e1 ON e.keyframe_id1 = e1.keyframe_id0
@@ -327,8 +408,8 @@ function calculateDistance(pos1: number[], pos2: number[]): number {
     Math.pow(pos1[2] - pos2[2], 2)
   );
 
-  if (!result) {
-    throw new Error("Distance calculation was NaN:" + pos1 + " " + pos2 + " " + result);
+  if (result == null || result < 0) {
+    throw new Error("Distance calculation was NaN: [" + pos1 + "] [" + pos2 + "] " + result);
   }
 
   return result;
