@@ -9,6 +9,8 @@ import {
   Y_DIST_THRESHOLD,
 } from "./consts";
 
+// TODO: Look at  'A New Trajectory Reduction Method for Mobile Devices Operating Both Online and Offline'
+
 function calculatePositionFromMatrix(
   matrix: number[]
 ): [number, number, number] {
@@ -59,11 +61,14 @@ function areNeighboursNeighboursOutsideRangeOfCurrent(
   return neighbours.some(async (val) => {
     const neighbourPosition = await getNodePosition(db, val.keyframe_id);
     const distance = calculateXZDistance(currentPosition, neighbourPosition);
+    console.debug("Distance of Neighbour Intersect: ", distance)
     if (distance > RANGE_OF_NEIGHBOUR_INTERSECTION) {
+      console.log("THERE WAS ONE OUTSIDE DISTANCE")
       return true;
     }
   });
 }
+
 
 /**
  * Loop through each node, if a node is within 5m keep the least blurry
@@ -75,7 +80,11 @@ async function useGreedyTripleRingStrategy(
   image_directory = "/home/skwangles/Documents/Honours/CampusVirtual/pictures/",
   extension = ".png"
 ) {
-  const firstFrame = await getNextKeyframe(db, -1);
+
+  // removeAllSingleOffshoots(db);
+
+
+  const firstFrame = await getNextKeyframe(db, 2);
   if (!firstFrame) {
     throw new Error("Could not find the first frame!");
   }
@@ -85,22 +94,57 @@ async function useGreedyTripleRingStrategy(
 
   console.log("First keyframe ID", currentKeyframeId);
 
+  let stack = [currentKeyframeId]
+  let visited = new Set();
+
+  let addToStack = (id: number) => {
+    if (!visited.has(id)) stack.push(id)
+  }
+
   // Loop through every node
-  while (currentKeyframeId != null) {
+  while (stack.length > 0) {
+    console.info("Stack length:", stack.length, visited.size)
+
+    const currentKeyframeId = stack.pop()!
+    if (visited.has(currentKeyframeId)) continue; // Sanity check we aren't adding duplicates
+    visited.add(currentKeyframeId);
+
+    if (currentKeyframeId == 42) {
+      console.log(42)
+    }
+
+
     let currentPosition = await getNodePosition(db, currentKeyframeId);
-    let is_deleted = false;
+    let is_current_deleted = false;
     console.log("Current:", currentKeyframeId);
 
     const checkedNeighbours = new Set();
     let neighboursHaveChanged = true;
-    while (neighboursHaveChanged) {
+    while (neighboursHaveChanged && !is_current_deleted) {
       const neighbours = await getNeighbours(db, currentKeyframeId);
       neighboursHaveChanged = false;
+
+      // Ignore single end nodes to avoid the small 1 depth leaves on an otherwise long stretch
+      if (neighbours.length == 1) { // Will need to START from NOT an end node (e.g. id 2)
+        const firstNeighbourId = Number(neighbours[0]!.keyframe_id)
+        addToStack(firstNeighbourId)
+
+        console.log("Removing self: ", currentKeyframeId)
+        await replaceNode(db, currentKeyframeId)
+        continue;
+      }
+
       for (const neighbour of neighbours) {
         const neighbourId = Number(neighbour.keyframe_id);
 
+        if (neighbourId > 1140 && neighbourId < 1143) {
+          console.log("Looking at 1140")
+        }
+
+        addToStack(neighbourId);
+
         if (checkedNeighbours.has(neighbourId)) continue;
-        checkedNeighbours.add(neighbourId);
+        checkedNeighbours.add(neighbourId); // Not using 'visited' here, because we want the 'current' to delete a previous node if it was found sharper
 
         const ts = neighbour.ts;
         const neighbourPosition = await getNodePosition(db, neighbourId);
@@ -108,11 +152,15 @@ async function useGreedyTripleRingStrategy(
           currentPosition,
           neighbourPosition
         );
+
         const yDistance = Math.abs(neighbourPosition[1] - currentPosition[1]);
 
-        if (yDistance > Y_DIST_THRESHOLD) continue;
+        if (yDistance > Y_DIST_THRESHOLD) {
+          continue;
+        }
 
         if (distance < TARGET_CLOSENESS || distance < ALWAYS_MERGE_CLOSENESS) {
+
           const currentSharpness =
             (await calculateImageSharpness(
               `${image_directory}${Number(currentTs).toFixed(5)}${extension}`
@@ -122,7 +170,7 @@ async function useGreedyTripleRingStrategy(
               `${image_directory}${Number(ts).toFixed(5)}${extension}`
             )) ?? 0;
 
-          if (neighbourSharpness < currentSharpness) {
+          if (neighbourSharpness <= currentSharpness) {
             console.log(
               "Deleting neighbour",
               neighbourId,
@@ -130,52 +178,45 @@ async function useGreedyTripleRingStrategy(
               neighbourSharpness
             );
 
-            // If 'current_node' is_deleted, then indicates one neighbour has deemed itself close enough
-            if (
-              !is_deleted &&
-              distance > ALWAYS_MERGE_CLOSENESS &&
-              areNeighboursNeighboursOutsideRangeOfCurrent(
-                await getNeighbours(db, neighbourId),
-                currentPosition
-              )
-            )
-              continue;
+            if (neighbourId == 691 || currentKeyframeId == 691) {
+              console.log("MAYBE SKETCHY NEIGHBOUR STUFF")
+            }
 
+            // if (areNeighboursNeighboursOutsideRangeOfCurrent((await getNeighbours(db, neighbourId)), currentPosition)) continue;
             neighboursHaveChanged = true;
 
             await replaceNode(db, neighbourId);
+            visited.add(neighbourId); // Its been deleted, so don't try visit it
           } else {
+            // Don't delete self
             console.log(
               "Deleting current node",
               currentKeyframeId,
               "with sharpness",
               currentSharpness
             );
-            if (is_deleted) continue;
 
-            is_deleted = true;
+            if (is_current_deleted) continue;
+            is_current_deleted = true;
 
-            if (
-              distance > ALWAYS_MERGE_CLOSENESS &&
-              areNeighboursNeighboursOutsideRangeOfCurrent(
-                await getNeighbours(db, currentKeyframeId),
-                neighbourPosition
-              )
-            )
-              continue; // TODO: Make refetching neighbours less wasteful - note: can't just put 'neighbours' in as some may be deleted
+            // if (
+            //   areNeighboursNeighboursOutsideRangeOfCurrent(
+            //     await getNeighbours(db, currentKeyframeId),
+            //     neighbourPosition
+            //   )
+            // )
+            //   continue; // TODO: Make refetching neighbours less wasteful - note: can't just put 'neighbours' in as some may be deleted
 
             await replaceNode(db, currentKeyframeId);
+
           }
         }
       }
     }
-    const result = await getNextKeyframe(db, currentKeyframeId);
-    if (!result) break;
-
-    currentKeyframeId = Number(result.keyframe_id);
-    currentTs = Number(result.ts);
   }
 }
+
+
 
 async function copyDenseToRefined(db: any) {
   await db.query("DROP TABLE IF EXISTS refined_edges CASCADE;");
