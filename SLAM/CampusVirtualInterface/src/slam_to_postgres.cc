@@ -221,18 +221,18 @@ void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
         }
 
         // Covisibility graph
-        const auto covisibilities = keyfrm->graph_node_->get_covisibilities_over_min_num_shared_lms(100);
-        if (!covisibilities.empty()) {
-            for (const auto& covisibility : covisibilities) {
-                if (!covisibility || covisibility->will_be_erased()) {
-                    continue;
-                }
-                txn.exec_params("INSERT INTO edges (keyframe_id0, keyframe_id1, type) VALUES ($1, $2, 2) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
-                                keyfrm_id, covisibility->id_);
-                txn.exec_params("INSERT INTO edges (keyframe_id1, keyframe_id0, type) VALUES ($1, $2, 2) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
-                                keyfrm_id, covisibility->id_);
-            }
-        }
+        // const auto covisibilities = keyfrm->graph_node_->get_covisibilities_over_min_num_shared_lms(100);
+        // if (!covisibilities.empty()) {
+        //     for (const auto& covisibility : covisibilities) {
+        //         if (!covisibility || covisibility->will_be_erased()) {
+        //             continue;
+        //         }
+        //         txn.exec_params("INSERT INTO edges (keyframe_id0, keyframe_id1, type) VALUES ($1, $2, 2) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
+        //                         keyfrm_id, covisibility->id_);
+        //         txn.exec_params("INSERT INTO edges (keyframe_id1, keyframe_id0, type) VALUES ($1, $2, 2) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING",
+        //                         keyfrm_id, covisibility->id_);
+        //     }
+        // }
 
     }
 
