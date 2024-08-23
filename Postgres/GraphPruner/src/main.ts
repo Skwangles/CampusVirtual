@@ -54,19 +54,24 @@ async function getNextKeyframe(db: any, currentId: number) {
   return nextFrame;
 }
 
-function areNeighboursNeighboursOutsideRangeOfCurrent(
+async function areNeighboursNeighboursOutsideRangeOfCurrent(
   neighbours: { keyframe_id: number }[],
-  currentPosition: [number, number, number]
+  currentPosition: [number, number, number],
+  currentId: number
 ) {
-  return neighbours.some(async (val) => {
-    const neighbourPosition = await getNodePosition(db, val.keyframe_id);
+
+  for (const neighbour of neighbours) {
+    if (neighbour.keyframe_id == currentId) return false; // Itself is 0 distance
+
+    const neighbourPosition = await getNodePosition(db, neighbour.keyframe_id);
     const distance = calculateXZDistance(currentPosition, neighbourPosition);
     console.debug("Distance of Neighbour Intersect: ", distance)
     if (distance > RANGE_OF_NEIGHBOUR_INTERSECTION) {
       console.log("THERE WAS ONE OUTSIDE DISTANCE")
       return true;
     }
-  });
+  }
+  return false;
 }
 
 
@@ -84,7 +89,7 @@ async function useGreedyTripleRingStrategy(
   // removeAllSingleOffshoots(db);
 
 
-  const firstFrame = await getNextKeyframe(db, 2);
+  const firstFrame = await getNextKeyframe(db, -1);
   if (!firstFrame) {
     throw new Error("Could not find the first frame!");
   }
@@ -103,16 +108,9 @@ async function useGreedyTripleRingStrategy(
 
   // Loop through every node
   while (stack.length > 0) {
-    console.info("Stack length:", stack.length, visited.size)
-
     const currentKeyframeId = stack.pop()!
     if (visited.has(currentKeyframeId)) continue; // Sanity check we aren't adding duplicates
     visited.add(currentKeyframeId);
-
-    if (currentKeyframeId == 42) {
-      console.log(42)
-    }
-
 
     let currentPosition = await getNodePosition(db, currentKeyframeId);
     let is_current_deleted = false;
@@ -130,16 +128,13 @@ async function useGreedyTripleRingStrategy(
         addToStack(firstNeighbourId)
 
         console.log("Removing self: ", currentKeyframeId)
-        await replaceNode(db, currentKeyframeId)
+        await replaceNode(db, currentKeyframeId, currentPosition)
         continue;
       }
 
       for (const neighbour of neighbours) {
         const neighbourId = Number(neighbour.keyframe_id);
-
-        if (neighbourId > 1140 && neighbourId < 1143) {
-          console.log("Looking at 1140")
-        }
+        if (currentKeyframeId == neighbourId) continue
 
         addToStack(neighbourId);
 
@@ -178,40 +173,25 @@ async function useGreedyTripleRingStrategy(
               neighbourSharpness
             );
 
-            if (neighbourId == 691 || currentKeyframeId == 691) {
-              console.log("MAYBE SKETCHY NEIGHBOUR STUFF")
+
+            if (await replaceNode(db, neighbourId, neighbourPosition)) {
+              neighboursHaveChanged = true;
+              visited.add(neighbourId); // Its been deleted, so don't try visit it
             }
-
-            // if (areNeighboursNeighboursOutsideRangeOfCurrent((await getNeighbours(db, neighbourId)), currentPosition)) continue;
-            neighboursHaveChanged = true;
-
-            await replaceNode(db, neighbourId);
-            visited.add(neighbourId); // Its been deleted, so don't try visit it
           } else {
-            // Don't delete self
-            console.log(
-              "Deleting current node",
-              currentKeyframeId,
-              "with sharpness",
-              currentSharpness
-            );
-
             if (is_current_deleted) continue;
             is_current_deleted = true;
-
-            // if (
-            //   areNeighboursNeighboursOutsideRangeOfCurrent(
-            //     await getNeighbours(db, currentKeyframeId),
-            //     neighbourPosition
-            //   )
-            // )
-            //   continue; // TODO: Make refetching neighbours less wasteful - note: can't just put 'neighbours' in as some may be deleted
-
-            await replaceNode(db, currentKeyframeId);
-
           }
         }
       }
+    }
+    if (is_current_deleted) {
+      const neighbours = await getNeighbours(db, currentKeyframeId)
+      for (const neighbour of neighbours) {
+        if (!checkedNeighbours.has(neighbour.keyframe_id)) addToStack(neighbour.keyframe_id)
+      }
+      console.log("Deleteing current node:", currentKeyframeId)
+      await replaceNode(db, currentKeyframeId, currentPosition);
     }
   }
 }
@@ -237,12 +217,12 @@ async function prune() {
   await copyDenseToRefined(db);
   console.log("Copied across nodes, edges and node_locations");
   try {
-    await db.query("BEGIN");
+    // await db.query("BEGIN");
     // Find the first node in the list
 
     await useGreedyTripleRingStrategy(db);
     console.log("Committing");
-    await db.query("COMMIT");
+    // await db.query("COMMIT");
   } catch (e) {
     console.log("Error:", e);
     await db.query("ROLLBACK");
@@ -312,7 +292,7 @@ function calculateXZDistance(pos1: number[], pos2: number[]): number {
 }
 
 // Helper function to delete a node and its edges
-async function replaceNode(db: any, keyframeId: number) {
+async function replaceNode(db: any, keyframeId: number, position: [number, number, number]) {
   const direct_neighbours = (
     await db.query(
       "SELECT keyframe_id1 as keyframe_id FROM refined_edges WHERE keyframe_id0 = $1 AND (type = 0 OR type = 1)",
@@ -320,10 +300,22 @@ async function replaceNode(db: any, keyframeId: number) {
     )
   ).rows;
 
+  await db.query("BEGIN;");
+
   for (const neighbour_id in direct_neighbours) {
     const neighbour = direct_neighbours[neighbour_id];
+    const pos = await getNodePosition(db, neighbour.keyframe_id)
+
     for (const new_neighbour of direct_neighbours.slice(neighbour_id)) {
       if (new_neighbour.keyframe_id == neighbour.keyframe_id) continue;
+      const newNeighbourPosition = await getNodePosition(db, new_neighbour.keyframe_id)
+      const distance = calculateXZDistance(newNeighbourPosition, pos);
+      const yDistance = Math.abs(newNeighbourPosition[2] - pos[2])
+      if (distance > TARGET_CLOSENESS || yDistance > Y_DIST_THRESHOLD) {
+        console.debug("Cancelling delete - A new edge is too large - Distance:", distance, " ID:", neighbour.keyframe_id, " Compared ID:", new_neighbour.keyframe_id)
+        await db.query("ROLLBACK;")
+        return false;
+      }
       await db.query(
         "INSERT INTO refined_edges (keyframe_id0, keyframe_id1, type) VALUES ($1, $2, 1) ON CONFLICT (keyframe_id0, keyframe_id1) DO UPDATE SET type = 1;",
         [neighbour.keyframe_id, new_neighbour.keyframe_id]
@@ -345,6 +337,9 @@ async function replaceNode(db: any, keyframeId: number) {
   await db.query("DELETE FROM refined_nodes WHERE keyframe_id = $1;", [
     keyframeId,
   ]);
+
+  await db.query("COMMIT;")
+  return true;
 }
 
 prune().catch(console.error);
