@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import './StatsForNerds.css'
 // Type definitions
 interface StatsForNerdsProps {
-  point: {keyframe_id: number, location: string}
+  point: {keyframe_id: number, location: string, ts: number}
 }
 
 const StatsForNerds: React.FC<StatsForNerdsProps> = ({ point }) => {
   const [isOpen, setIsOpen] = useState(true);
-
+  console.log(point)
   return (
     <div className='stats-container'>
       <button
@@ -20,8 +20,9 @@ const StatsForNerds: React.FC<StatsForNerdsProps> = ({ point }) => {
       {isOpen && (
         <div className="stats">
           <ul>
-            <li>Point ID: {point.location}</li>
+            <li>Point ID: {point.keyframe_id}</li>
           <li>Location: {point.location}</li>
+          <li>Image Identifier: {Number(point.ts).toFixed(5)}</li>
           </ul>
         </div>
       )}
