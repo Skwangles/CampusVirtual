@@ -4,13 +4,14 @@ import { Canvas, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import axios from 'axios';
 import CameraRotationControls from './RotationController';
+import StatsForNerds from './StatsForNerds'
 import Map from './Map';
 import FloorList from './FloorList';
 
 const COORDS_TO_METRES = 40
 const showMap = false;
 const showList = true;
-const API_PREFIX = ""; // Use to specify API server different to frontend e.g. localhost:3001
+const API_PREFIX = "http://localhost:3001"; // Use to specify API server different to frontend e.g. localhost:3001
 const addQuotationMarks = false;
 
 interface HotspotProps {
@@ -283,7 +284,7 @@ const VirtualTour: React.FC = () => {
 
   return (
     <>
-    <div style={{position: "fixed", bottom: 0, left: 0, background: "black", opacity: 0.6, zIndex: 99 }}>Location: {currentPoint?.location}</div>
+    <StatsForNerds point={currentPoint}/>
     <div style={{position: "fixed", top: 0, right: 0, zIndex: 9}}> Show Pruned: <input id="isrefined_chkbx" type="checkbox"  checked={isRefined} onChange={(event) =>{
       const checkbox = document.getElementById("isrefined_chkbx")
       //@ts-ignore
