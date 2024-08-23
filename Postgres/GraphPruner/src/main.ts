@@ -54,27 +54,6 @@ async function getNextKeyframe(db: any, currentId: number) {
   return nextFrame;
 }
 
-async function areNeighboursNeighboursOutsideRangeOfCurrent(
-  neighbours: { keyframe_id: number }[],
-  currentPosition: [number, number, number],
-  currentId: number
-) {
-
-  for (const neighbour of neighbours) {
-    if (neighbour.keyframe_id == currentId) return false; // Itself is 0 distance
-
-    const neighbourPosition = await getNodePosition(db, neighbour.keyframe_id);
-    const distance = calculateXZDistance(currentPosition, neighbourPosition);
-    console.debug("Distance of Neighbour Intersect: ", distance)
-    if (distance > RANGE_OF_NEIGHBOUR_INTERSECTION) {
-      console.log("THERE WAS ONE OUTSIDE DISTANCE")
-      return true;
-    }
-  }
-  return false;
-}
-
-
 /**
  * Loop through each node, if a node is within 5m keep the least blurry
  * (except if is a junction point, then never remove that one)
