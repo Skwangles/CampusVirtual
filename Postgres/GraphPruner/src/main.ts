@@ -5,7 +5,6 @@ import {
   COORDS_TO_METRES,
   TARGET_CLOSENESS,
   ALWAYS_MERGE_CLOSENESS,
-  RANGE_OF_NEIGHBOUR_INTERSECTION,
   Y_DIST_THRESHOLD,
 } from "./consts";
 
@@ -153,7 +152,7 @@ async function useGreedyTripleRingStrategy(
             );
 
 
-            if (await replaceNode(db, neighbourId, neighbourPosition)) {
+            if (await replaceNode(db, neighbourId, neighbourPosition, distance <= ALWAYS_MERGE_CLOSENESS)) {
               neighboursHaveChanged = true;
               visited.add(neighbourId); // Its been deleted, so don't try visit it
             }
@@ -271,7 +270,7 @@ function calculateXZDistance(pos1: number[], pos2: number[]): number {
 }
 
 // Helper function to delete a node and its edges
-async function replaceNode(db: any, keyframeId: number, position: [number, number, number]) {
+async function replaceNode(db: any, keyframeId: number, position: [number, number, number], ignore_distance = false) {
   const direct_neighbours = (
     await db.query(
       "SELECT keyframe_id1 as keyframe_id FROM refined_edges WHERE keyframe_id0 = $1 AND (type = 0 OR type = 1)",
@@ -290,7 +289,7 @@ async function replaceNode(db: any, keyframeId: number, position: [number, numbe
       const newNeighbourPosition = await getNodePosition(db, new_neighbour.keyframe_id)
       const distance = calculateXZDistance(newNeighbourPosition, pos);
       const yDistance = Math.abs(newNeighbourPosition[2] - pos[2])
-      if (distance > TARGET_CLOSENESS || yDistance > Y_DIST_THRESHOLD) {
+      if (!ignore_distance && (distance > TARGET_CLOSENESS || yDistance > Y_DIST_THRESHOLD)) {
         console.debug("Cancelling delete - A new edge is too large - Distance:", distance, " ID:", neighbour.keyframe_id, " Compared ID:", new_neighbour.keyframe_id)
         await db.query("ROLLBACK;")
         return false;
