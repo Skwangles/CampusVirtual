@@ -21,7 +21,7 @@ const FloorList: React.FC<FloorListProps> = ({ floors, setManualFloorSelect }) =
   }, [selectedFloor])
 
   return (
-    <div>
+    <div className='floor-list-container'>
       <button
         className="drawer-toggle"
         onClick={() => setIsOpen(!isOpen)}

@@ -1,13 +1,23 @@
-.floor-list {
+.floor-list-container {
+  margin-left: 5px;
+  margin-bottom: 5px;
   position: fixed;
-  top: 0;
+  bottom: 0;
   left: 0;
-  background: rgba(0, 0, 0, 0.2); /* Transparent gray background */
+  z-index: 999;
+  flex-direction: column;
+  display: flex;
+  align-items: center;
+}
+
+
+.floor-list {
+  background: rgba(0, 0, 0, 0.8); /* Transparent gray background */
   padding: 10px;
   border-radius: 4px;
   max-height: 200px;
   overflow-y: auto;
-  z-index: 1000; /* Ensure it's above other content */
+  z-index: 1000;
 }
 
 .floor-list ul {
@@ -27,9 +37,6 @@
 }
 
 .drawer-toggle {
-  position: fixed;
-  bottom: 10px;
-  left: 10px;
   background-color: #007bff;
   color: white;
   border: none;
@@ -37,6 +44,7 @@
   border-radius: 4px;
   cursor: pointer;
   z-index: 1001; /* Ensure it's above the floor list */
+  margin-bottom: 5px;
 }
 
 .dialog {
