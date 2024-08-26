@@ -7,7 +7,7 @@ interface FloorplanListProps {
 
 const FloorplanList: React.FC<FloorplanListProps> = ({ floorplans, onSelect }) => {
   return (
-    <div>
+    <div style={{border: "solid 2px", height: "100vh", marginRight: "10px"}}>
       <h2>Floorplans</h2>
       <ul>
         {floorplans.map((floorplan) => (
