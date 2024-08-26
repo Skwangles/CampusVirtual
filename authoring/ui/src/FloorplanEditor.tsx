@@ -21,6 +21,7 @@ interface FloorplanEditorProps {
 const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const [imagePath, setImagePath] = useState<string | null>(null)
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [stageWidth, setStageWidth] = useState<number>(800);
   const [stageHeight, setStageHeight] = useState< number>(800);
@@ -30,9 +31,10 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
     const fetchFloorplanData = async () => {
       try {
         const response = await axios.get<{image: string, edges: Array<{keyframe_id0: number, keyframe_id1: number}>, nodes: Array<{x: number, y: number, keyframe_id: number, type: number}>}>(`/api/floorplans/${floorplan}`);
-
+        console.log(response.data)
         const img = new Image();
         img.src = response.data.image;
+        setImagePath(response.data.image)
         img.onload = () => {
           setImage(img);
           setStageWidth(img.width)
@@ -55,7 +57,7 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
           node.id === id ? { ...node, x, y } : node
         )
       );
-      axios.post(`/api/floorplans/${floorplan}/update`, { id, x, y });
+      axios.post(`/api/floorplans/${floorplan}/update`, { id, x: x/ stageWidth, y: y / stageHeight  });
     },
     [floorplan]
   );
@@ -72,22 +74,29 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
 
   const getNodeCoords = (id: string) => {
     const node = nodes.find(node => node.id === id);
-    return node ? {x: node.x * stageWidth, y: node.y * stageHeight} : {x: -1, y:-1}
+    if (!node) throw Error("Couldn't find node: " + id)
+    return {x: node.x * stageWidth, y: node.y * stageHeight} 
   }
 
   return (
     <>
 
     <div style={{border: "solid 1px"}}>
+    {imagePath == '' && (<>
+        <label htmlFor='floorplan-upload'>Select a floorplan:</label>
+        <input type='file' id='floorplan-upload'/>
+        </>)
+        }
+        {imagePath && imagePath != '' && (
     <Stage width={stageWidth} height={stageHeight}>
       <Layer>
-        {image && (
+        {image && (<>
           <KonvaImage
             image={image}
             width={stageWidth}
             height={stageHeight}
           />
-        )}
+        
         {edges.map((edge, index) => {
            const { x: x1, y: y1 } = getNodeCoords(edge.id0);
            const { x: x2, y: y2 } = getNodeCoords(edge.id1);
@@ -116,8 +125,10 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
             onDragMove={handleDragMove}
           />
         ))}
+        </>)}
       </Layer>
-    </Stage>
+    </Stage>)}
+    
     </div>
     </>
   );
