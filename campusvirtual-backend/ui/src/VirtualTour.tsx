@@ -1,6 +1,7 @@
 import React, {useEffect, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 // import { OrbitControls } from '@react-three/drei';
+import { API_PREFIX } from './consts';
 import * as THREE from 'three';
 import axios from 'axios';
 import CameraRotationControls from './RotationController';
@@ -9,9 +10,8 @@ import Map from './Map';
 import FloorList from './FloorList';
 
 const COORDS_TO_METRES = 40
-const showMap = false;
+const showMap = true;
 const showList = true;
-const API_PREFIX = "http://localhost:3001"; // Use to specify API server different to frontend e.g. localhost:3001
 const addQuotationMarks = false;
 
 interface HotspotProps {
@@ -256,19 +256,6 @@ const VirtualTour: React.FC = () => {
     setLocationGroup(currentPoint.location)
   }, [currentPoint])
 
-  useEffect(() => {
-	const update = async () => {
-      if (locationGroup == "") return;
-
-		 const response = await axios.get<NeighbourData[]>(API_PREFIX + "/floor/" + locationGroup + "/neighbours");
-     console.log(response)
-		 const data = response.data.map(val => ({position: calculatePositionFromMatrix(val.pose), name: val.keyframe_id}));
-		 setFloorWideNeighbours(data);
-	}
-
-	update();
-  }, [locationGroup])
-
   window.onpopstate = e =>{
 
     params = new URLSearchParams(window.location.search)
@@ -290,7 +277,7 @@ const VirtualTour: React.FC = () => {
       //@ts-ignore
       setIsRefined(checkbox.checked)
     }}/></div>
-    {showMap && (<Map imageSrc='test.jpg' pointsOfInterest={floorWideNeighbours}/>)}
+    {showMap && (<Map floorName={locationGroup} setID={setCurrentId}/>)}
     {showList && allFloorNames.length > 0 && (<FloorList floors={allFloorNames} setManualFloorSelect={setManualFloorSelect}/>)}
     <div style={{ width: "100vw", height: "100vh" }}>
     <Canvas camera={{ position: [0, 0, 10], fov: 75}} frameloop='demand' shadows>
