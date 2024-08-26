@@ -3,9 +3,10 @@ import axios from 'axios';
 import { Stage, Layer, Image as KonvaImage, Circle, Line } from 'react-konva';
 
 interface Node {
-  id: string;
+  id: string
   x: number;
   y: number;
+  type: number
 }
 
 interface Edge{
@@ -28,7 +29,7 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
   useEffect(() => {
     const fetchFloorplanData = async () => {
       try {
-        const response = await axios.get(`/api/floorplans/${floorplan}`);
+        const response = await axios.get<{image: string, edges: Array<{keyframe_id0: number, keyframe_id1: number}>, nodes: Array<{x: number, y: number, keyframe_id: number, type: number}>}>(`/api/floorplans/${floorplan}`);
 
         const img = new Image();
         img.src = response.data.image;
@@ -37,8 +38,8 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
           setStageWidth(img.width)
           setStageHeight(img.height)
         }
-        setEdges(response.data.edges)
-        setNodes(response.data.nodes);
+        setEdges(response.data.edges.map(edge => ({id0: String(edge.keyframe_id0), id1: String(edge.keyframe_id1)})))
+        setNodes(response.data.nodes.map(node => ({id: String(node.keyframe_id), ...node})));
       } catch (error) {
         console.error('Error fetching floorplan data:', error);
       }
@@ -76,7 +77,7 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
 
   return (
     <>
-    
+
     <div style={{border: "solid 1px"}}>
     <Stage width={stageWidth} height={stageHeight}>
       <Layer>
