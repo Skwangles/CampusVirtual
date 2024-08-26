@@ -52,9 +52,8 @@ void create_tables_if_not_exist(pqxx::connection& conn) {
 
     txn.exec(R"(
         CREATE TABLE IF NOT EXISTS nodes (
-            id SERIAL PRIMARY KEY,
             ts NUMERIC NOT NULL,
-            keyframe_id INTEGER UNIQUE NOT NULL,
+            keyframe_id INTEGER PRIMARY KEY,
             pose DOUBLE PRECISION[] NOT NULL,
             x_trans DOUBLE PRECISION,
             y_trans DOUBLE PRECISION,
@@ -65,20 +64,19 @@ void create_tables_if_not_exist(pqxx::connection& conn) {
 
     txn.exec(R"(
         CREATE TABLE IF NOT EXISTS edges (
-            id SERIAL PRIMARY KEY,
             keyframe_id0 INTEGER NOT NULL,
             keyframe_id1 INTEGER NOT NULL,
             type INTEGER DEFAULT 2,
             FOREIGN KEY (keyframe_id0) REFERENCES nodes(keyframe_id),
             FOREIGN KEY (keyframe_id1) REFERENCES nodes(keyframe_id),
-            CONSTRAINT unique_edge UNIQUE (keyframe_id0, keyframe_id1)
+            CONSTRAINT unique_edge UNIQUE (keyframe_id0, keyframe_id1),
+            PRIMARY KEY (keyframe_id0, keyframe_id1)
         );
     )");
 
     txn.exec(R"(
         CREATE TABLE IF NOT EXISTS node_locations (
-            id SERIAL PRIMARY KEY,
-            keyframe_id INTEGER UNIQUE NOT NULL,
+            keyframe_id INTEGER PRIMARY KEY NOT NULL,
             location TEXT,
             FOREIGN KEY (keyframe_id) REFERENCES nodes(keyframe_id)
         );
