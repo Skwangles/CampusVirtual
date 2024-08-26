@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@types/pg-pool": "^2.0.6",
     "axios": "^1.7.4",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
