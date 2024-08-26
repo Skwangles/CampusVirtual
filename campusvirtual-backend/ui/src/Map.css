@@ -11,7 +11,7 @@
 }
 
 .minimap-wrapper:hover {
-  transform: scale(4); /* Scales the element to 150% of its original size */
+  transform: scale(1.5); /* Scales the element to 150% of its original size */
 }
 
 .minimap-image {
