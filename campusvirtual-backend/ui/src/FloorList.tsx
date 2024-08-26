@@ -32,7 +32,7 @@ const FloorList: React.FC<FloorListProps> = ({ floors, setManualFloorSelect }) =
       {isOpen && (
         <div className="floor-list">
           <ul>
-            {floors.map((floor, index) => (
+            {floors.sort().map((floor, index) => (
               <li key={index} onClick={() => handleFloorClick(floor)}>
                 {floor}
               </li>
