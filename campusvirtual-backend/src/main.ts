@@ -5,6 +5,7 @@ import fs from 'fs'
 
 import db from './db'
 import { processImage } from './images'
+import floorplanAPI from './floorplans'
 
 const picturesDir = '/home/skwangles/Documents/Honours/CampusVirtual/pictures/'
 
@@ -196,6 +197,8 @@ app.get('/image/:detail/:ts', function (req: { params: { ts: string, detail: str
     res.sendFile(picturesDir + "test.jpg")
   }
 })
+
+app.use(floorplanAPI)
 
 const port = 3001
 app.listen(port, () => {
