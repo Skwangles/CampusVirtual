@@ -87,7 +87,7 @@ app.get('/api/floorplans/:name', async (req: Request, res: Response) => {
   const pointResult = await db.query("SELECT keyframe_id, x, y, type FROM floorplan_points WHERE location = $1", [name]);
   const image = await db.query("SELECT path FROM floorplan_images WHERE location = $1 LIMIT 1;", [name])
 
-  const edges = await db.query(`SELECT  e.keyframe_id0, e.keyframe_id1 FROM refined_edges e JOIN floorplan_points f ON e.keyframe_id0 = f.keyframe_id WHERE f.location = $1 AND f.type < $2`, [name, BORDERING_FLOOR_POINT_DEFAULT_TYPE])
+  const edges = await db.query(`SELECT  e.keyframe_id0, e.keyframe_id1 FROM refined_edges e JOIN floorplan_points f ON e.keyframe_id0 = f.keyframe_id JOIN floorplan_points f2 ON e.keyframe_id1 = f2.keyframe_id WHERE f.location = $1 AND f2.location = $1`, [name])
   if (pointResult.rowCount && pointResult.rowCount > 0 && image.rowCount && image.rowCount > 0) {
     res.json({ nodes: pointResult.rows, image: image.rows[0].path, edges: edges.rows })
   } else {
@@ -180,8 +180,8 @@ async function initDB() {
   }
 }
 
-const send_test_image = true;
-
+const send_test_image = false;
+const pictureDir = "/home/skwangles/Documents/Honours/CampusVirtual/pictures"
 const extension = ".png"
 app.get('/api/image/:id', async function (req: { params: { id: number } }, res) {
   const id = Number(req.params.id);
@@ -200,17 +200,16 @@ app.get('/api/image/:id', async function (req: { params: { id: number } }, res) 
   }
 
   if (send_test_image) {
-    res.sendFile(uploadImageDir + "test.jpg");
+    res.sendFile(path.join(pictureDir, "test.jpg"));
     console.log("Sending Test")
     return;
   }
-  const pathString = path.join(__dirname, uploadImageDir, Number(ts).toFixed(5).toString() + extension);
-
+  const pathString = path.join(pictureDir, Number(ts).toFixed(5).toString() + extension);
   if (fs.existsSync(pathString)) {
     res.sendFile(pathString)
   }
   else {
-    res.sendFile(path.join(__dirname, uploadImageDir, "test.jpg"))
+    res.sendFile(path.join(pictureDir, "test.jpg"))
   }
 })
 
