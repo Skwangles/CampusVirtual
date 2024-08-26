@@ -21,7 +21,7 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <div style={{ display: 'flex' }}>
+    <div style={{ display: 'flex', flexDirection: 'row', justifyContent: "space-between"}}>
       <FloorplanList floorplans={floorplans} onSelect={setSelectedFloorplan} />
       {selectedFloorplan && <FloorplanEditor floorplan={selectedFloorplan} />}
     </div>
