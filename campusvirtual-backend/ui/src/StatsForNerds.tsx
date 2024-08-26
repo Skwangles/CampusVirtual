@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import './StatsForNerds.css'
 // Type definitions
 interface StatsForNerdsProps {
-  point: {keyframe_id: number, location: string, ts: number}
+  point: {keyframe_id: number, location: string, ts: string}
 }
 
 const StatsForNerds: React.FC<StatsForNerdsProps> = ({ point }) => {
