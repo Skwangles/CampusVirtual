@@ -3,6 +3,8 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import db from "./db"
 import path from 'path'
+import multer from 'multer'
+import fs from 'fs'
 const app = express();
 const port = 5000;
 
@@ -14,25 +16,50 @@ app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, '../ui/dist')))
 
 
-const floorplans: { [key: string]: any } = {
-  'floorplan1': {
-    image: '/S-G.png',
-    nodes: [
-      { id: 'node1', x: .1, y: .20 },
-      { id: 'node2', x: .30, y: .40 },
-    ],
-    edges: [
-      { id0: 'node1', id1: 'node2' }
-    ]
+const uploadImageDir = "../ui/public/uploads"
+
+// Configure Multer for file upload handling
+const storage = multer.diskStorage({
+  destination: (req: any, file: any, cb: (arg0: null, arg1: string) => void) => {
+    // Ensure the uploads directory exists
+    const uploadDir = path.join(__dirname, uploadImageDir);
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir);
+    }
+    cb(null, uploadDir);
   },
-  // Add other floorplans here
-};
+  filename: (req: any, file: { originalname: any; }, cb: (arg0: null, arg1: any) => void) => {
+    // Use the original filename
+    cb(null, file.originalname);
+  },
+});
+
+const upload = multer({ storage })
+
+
 
 app.get('/', function (req, res) {
   res.sendFile(path.join(__dirname, '../ui/dist', 'index.html'))
 })
 
+app.post('/api/floorplans/:name/image', upload.single('file'), async (req: any, res) => {
+  try {
+    const { name } = req.params;
+    const file = req.file;
+    if (!file) {
+      return res.status(400).send('No file uploaded.');
+    }
 
+    // Save the image path to the database
+    const filePath = path.join('uploads', file.filename);
+    await db.query('UPDATE floorplan_images SET path = $1 WHERE location = $2', [filePath, name]);
+
+    res.send('File uploaded and path updated successfully.');
+  } catch (error) {
+    console.error('Error handling file upload:', error);
+    res.status(500).send('Internal server error.');
+  }
+});
 
 app.post('/api/floorplans/:name/update', (req: Request, res: Response) => {
   const { name } = req.params;
@@ -40,7 +67,6 @@ app.post('/api/floorplans/:name/update', (req: Request, res: Response) => {
 
   db.query("UPDATE floorplan_points SET x = $1, y = $2 WHERE keyframe_id = $3 AND location = $4;", [x, y, id, name]).then(
     (val: any) => {
-      console.log(val)
       if (val.rowCount > 0) {
         res.sendStatus(200)
       }
@@ -153,6 +179,41 @@ async function initDB() {
     console.debug("Data initialisation failed: ", e)
   }
 }
+
+const send_test_image = true;
+
+const extension = ".png"
+app.get('/api/image/:id', async function (req: { params: { id: number } }, res) {
+  const id = Number(req.params.id);
+
+  // Using FROM nodes because its the superset
+  const result = await db.query("SELECT ts FROM nodes WHERE keyframe_id = $1", [id])
+  if (!result || result.rowCount == 0) {
+    res.sendStatus(404);
+    return;
+  }
+
+  const ts = Number(result.rows[0].ts).toFixed(5);
+  if (ts === "NaN") {
+    res.status(400).send("Image id was not a valid image ID")
+    return;
+  }
+
+  if (send_test_image) {
+    res.sendFile(uploadImageDir + "test.jpg");
+    console.log("Sending Test")
+    return;
+  }
+  const pathString = path.join(__dirname, uploadImageDir, Number(ts).toFixed(5).toString() + extension);
+
+  if (fs.existsSync(pathString)) {
+    res.sendFile(pathString)
+  }
+  else {
+    res.sendFile(path.join(__dirname, uploadImageDir, "test.jpg"))
+  }
+})
+
 
 app.listen(port, () => {
   initDB();
