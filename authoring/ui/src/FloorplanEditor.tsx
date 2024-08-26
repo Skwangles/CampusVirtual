@@ -2,8 +2,9 @@ import React, { useState, useEffect} from 'react';
 import axios from 'axios';
 import { Stage, Layer, Image as KonvaImage, Circle, Line } from 'react-konva';
 import FileUpload from './FileUpload'
-// import EquirectangularViewer from './EquirectangularViewer'
+import EquirectangularViewer from './EquirectangularViewer'
 import StatsForNerds from './StatsForNerds'
+import { API_PREFIX } from './consts';
 interface Node {
   id: string
   x: number;
@@ -32,7 +33,8 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
   useEffect(() => {
     const fetchFloorplanData = async () => {
       try {
-        const response = await axios.get<{image: string, edges: Array<{keyframe_id0: number, keyframe_id1: number}>, nodes: Array<{x: number, y: number, keyframe_id: number, type: number}>}>(`/api/floorplans/${floorplan}`);
+        const response = await axios.get<{image: string, edges: Array<{keyframe_id0: number, keyframe_id1: number}>, nodes: Array<{x: number, y: number, keyframe_id: number, type: number}>}>(`${API_PREFIX}/api/floorplans/${floorplan}`);
+        console.log(response.data)
         const img = new Image();
         img.src = response.data.image;
         setImagePath(response.data.image)
@@ -82,7 +84,7 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
     const id = e.target.name();
     const x = (e.target.x() / e.target.getStage().width());
     const y = (e.target.y() / e.target.getStage().height());
-    axios.post(`/api/floorplans/${floorplan}/update`, { id, x, y  });
+    axios.post(`${API_PREFIX}/api/floorplans/${floorplan}/update`, { id, x, y  });
   }
 
   const padCordAwayFromEdge = (val:number) => {
@@ -150,7 +152,7 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
     </div>
     <div>
     <StatsForNerds selectedPoint={selectedPoint} />
-    {/* <EquirectangularViewer id={selectedPoint?.id} /> */}
+    <EquirectangularViewer id={selectedPoint?.id} />
 </div>
     </>
   );
