@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useCallback} from 'react';
+import React, { useState, useEffect} from 'react';
 import axios from 'axios';
 import { Stage, Layer, Image as KonvaImage, Circle, Line } from 'react-konva';
-
+import FileUpload from './FileUpload'
+// import EquirectangularViewer from './EquirectangularViewer'
+import StatsForNerds from './StatsForNerds'
 interface Node {
   id: string
   x: number;
@@ -25,13 +27,12 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [stageWidth, setStageWidth] = useState<number>(800);
   const [stageHeight, setStageHeight] = useState< number>(800);
-
+  const [selectedPoint, setSelectedPoint] = useState<Node|null>(null); 
 
   useEffect(() => {
     const fetchFloorplanData = async () => {
       try {
         const response = await axios.get<{image: string, edges: Array<{keyframe_id0: number, keyframe_id1: number}>, nodes: Array<{x: number, y: number, keyframe_id: number, type: number}>}>(`/api/floorplans/${floorplan}`);
-        console.log(response.data)
         const img = new Image();
         img.src = response.data.image;
         setImagePath(response.data.image)
@@ -50,43 +51,58 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
     fetchFloorplanData();
   }, [floorplan]);
 
-  const handleDragEnd = useCallback(
-    (id: string, x: number, y: number) => {
+  const handleDragEnd = (id: string, x: number, y: number) => {
       setNodes((prevNodes) =>
         prevNodes.map((node) =>
           node.id === id ? { ...node, x, y } : node
         )
       );
-      axios.post(`/api/floorplans/${floorplan}/update`, { id, x: x/ stageWidth, y: y / stageHeight  });
-    },
-    [floorplan]
-  );
+      
+    }
 
-  const handleDragMove = useCallback(
-    (e: any) => {
+
+  const handleDragMove = (e: any) => {
       const id = e.target.name();
+      
       const x = (e.target.x() / e.target.getStage().width());
       const y = (e.target.y() / e.target.getStage().height());
       handleDragEnd(id, x, y);
-    },
-    [handleDragEnd]
-  );
+  }
+
+  const handleMouseDown = (e: any) =>{
+      const id = e.target.name();
+      const foundNode = nodes.find(node => String(node.id) === String(id))
+      if (foundNode){
+        setSelectedPoint(foundNode);
+      }
+
+  }
+
+  const handleMouseUp = (e: any) =>{
+    const id = e.target.name();
+    const x = (e.target.x() / e.target.getStage().width());
+    const y = (e.target.y() / e.target.getStage().height());
+    axios.post(`/api/floorplans/${floorplan}/update`, { id, x, y  });
+  }
+
+  const padCordAwayFromEdge = (val:number) => {
+    const padding = 0.01
+      return Math.max(0 + padding, Math.min(1 - padding, val))
+  }
 
   const getNodeCoords = (id: string) => {
     const node = nodes.find(node => node.id === id);
     if (!node) throw Error("Couldn't find node: " + id)
-    return {x: node.x * stageWidth, y: node.y * stageHeight} 
+    return {x: padCordAwayFromEdge(node.x) * stageWidth, y: padCordAwayFromEdge(node.y) * stageHeight} 
   }
 
   return (
     <>
+    <div >
 
+    <FileUpload currentFloor={floorplan} isImageSelected={Boolean(imagePath && imagePath != '')} />
     <div style={{border: "solid 1px"}}>
-    {imagePath == '' && (<>
-        <label htmlFor='floorplan-upload'>Select a floorplan:</label>
-        <input type='file' id='floorplan-upload'/>
-        </>)
-        }
+    
         {imagePath && imagePath != '' && (
     <Stage width={stageWidth} height={stageHeight}>
       <Layer>
@@ -100,7 +116,6 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
         {edges.map((edge, index) => {
            const { x: x1, y: y1 } = getNodeCoords(edge.id0);
            const { x: x2, y: y2 } = getNodeCoords(edge.id1);
-           console.log(x1, y1, x2, y2)
  
            return (
              <Line
@@ -116,12 +131,14 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
         {nodes.map((node) => (
           <Circle
             key={node.id}
-            x={node.x * stageWidth}
-            y={node.y * stageHeight}
+            x={padCordAwayFromEdge(node.x) * stageWidth}
+            y={padCordAwayFromEdge(node.y) * stageHeight}
             radius={5}
-            fill="red"
+            fill={node.type < 50 ?  "red" : "blue"}
             name={node.id}
             draggable
+            onMouseDown={handleMouseDown}
+            onMouseUp={handleMouseUp}
             onDragMove={handleDragMove}
           />
         ))}
@@ -130,6 +147,11 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
     </Stage>)}
     
     </div>
+    </div>
+    <div>
+    <StatsForNerds selectedPoint={selectedPoint} />
+    {/* <EquirectangularViewer id={selectedPoint?.id} /> */}
+</div>
     </>
   );
 };
