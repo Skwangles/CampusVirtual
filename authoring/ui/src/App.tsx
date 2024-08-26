@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import FloorplanList from './FloorplanList';
 import FloorplanEditor from './FloorplanEditor';
+import { API_PREFIX } from './consts';
 
 const App: React.FC = () => {
   const [floorplans, setFloorplans] = useState<string[]>([]);
@@ -10,7 +11,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const fetchFloorplans = async () => {
       try {
-        const response = await axios.get('/api/floorplans');
+        const response = await axios.get(`${API_PREFIX}/api/floorplans`);
         setFloorplans(response.data);
       } catch (error) {
         console.error('Error fetching floorplans:', error);

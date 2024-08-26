@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { API_PREFIX } from './consts';
 
 const FileUpload = ({currentFloor, isImageSelected}: {currentFloor: string, isImageSelected: boolean}) => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -20,7 +21,7 @@ const FileUpload = ({currentFloor, isImageSelected}: {currentFloor: string, isIm
     formData.append('file', selectedFile);
 
     try {
-      const response = await fetch(`/api/floorplans/${currentFloor}/image`, {
+      const response = await fetch(`${API_PREFIX}/api/floorplans/${currentFloor}/image`, {
         method: 'POST',
         body: formData,
       });
