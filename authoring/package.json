@@ -1,11 +1,15 @@
 {
   "dependencies": {
+    "@react-three/fiber": "^8.17.6",
     "@types/pg-pool": "^2.0.6",
+    "@types/three": "^0.167.2",
     "axios": "^1.7.4",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
     "express": "^4.19.2",
-    "pg-pool": "^3.6.2"
+    "multer": "^1.4.5-lts.1",
+    "pg-pool": "^3.6.2",
+    "three": "^0.167.1"
   },
   "name": "authoring",
   "version": "1.0.0",
@@ -21,6 +25,7 @@
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/multer": "^1.4.12",
     "@types/node": "^22.5.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.4"
