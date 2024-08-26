@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useCallback} from 'react';
 import axios from 'axios';
-import { Stage, Layer, Image as KonvaImage, Circle } from 'react-konva';
+import { Stage, Layer, Image as KonvaImage, Circle, Line } from 'react-konva';
 
 interface Node {
   id: string;
   x: number;
   y: number;
+}
+
+interface Edge{
+  id0: string,
+  id1: string
 }
 
 interface FloorplanEditorProps {
@@ -14,7 +19,11 @@ interface FloorplanEditorProps {
 
 const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
   const [nodes, setNodes] = useState<Node[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
   const [image, setImage] = useState<HTMLImageElement | null>(null);
+  const [stageWidth, setStageWidth] = useState<number>(800);
+  const [stageHeight, setStageHeight] = useState< number>(800);
+
 
   useEffect(() => {
     const fetchFloorplanData = async () => {
@@ -23,7 +32,12 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
 
         const img = new Image();
         img.src = response.data.image;
-        img.onload = () => setImage(img);
+        img.onload = () => {
+          setImage(img);
+          setStageWidth(img.width)
+          setStageHeight(img.height)
+        }
+        setEdges(response.data.edges)
         setNodes(response.data.nodes);
       } catch (error) {
         console.error('Error fetching floorplan data:', error);
@@ -48,31 +62,53 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
   const handleDragMove = useCallback(
     (e: any) => {
       const id = e.target.name();
-      const x = (e.target.x() / e.target.getStage().width()) * 100;
-      const y = (e.target.y() / e.target.getStage().height()) * 100;
+      const x = (e.target.x() / e.target.getStage().width());
+      const y = (e.target.y() / e.target.getStage().height());
       handleDragEnd(id, x, y);
     },
     [handleDragEnd]
   );
 
+  const getNodeCoords = (id: string) => {
+    const node = nodes.find(node => node.id === id);
+    return node ? {x: node.x * stageWidth, y: node.y * stageHeight} : {x: -1, y:-1}
+  }
+
   return (
-    <Stage width={800} height={600}>
+    <>
+    
+    <div style={{border: "solid 1px"}}>
+    <Stage width={stageWidth} height={stageHeight}>
       <Layer>
         {image && (
           <KonvaImage
             image={image}
-            width={800}
-            height={600}
-            offsetX={400}
-            offsetY={300}
+            width={stageWidth}
+            height={stageHeight}
           />
         )}
+        {edges.map((edge, index) => {
+           const { x: x1, y: y1 } = getNodeCoords(edge.id0);
+           const { x: x2, y: y2 } = getNodeCoords(edge.id1);
+           console.log(x1, y1, x2, y2)
+ 
+           return (
+             <Line
+               key={index}
+               points={[x1, y1, x2, y2]}
+               stroke="black"
+               strokeWidth={2}
+               lineCap="round"
+               lineJoin="round"
+             />
+           );
+        })}
         {nodes.map((node) => (
           <Circle
             key={node.id}
-            x={node.x * 8}
-            y={node.y * 6}
-            radius={20}
+            x={node.x * stageWidth}
+            y={node.y * stageHeight}
+            radius={5}
             fill="red"
             name={node.id}
             draggable
@@ -81,6 +117,8 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
         ))}
       </Layer>
     </Stage>
+    </div>
+    </>
   );
 };
 
