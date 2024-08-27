@@ -7,7 +7,7 @@ import { SEND_TEST_IMAGE, FLOORPLAN_IMAGE_DIR, KEYFRAME_IMG_DIR, KEYFRAME_IMG_EX
 import { stripDirectoryTraversal } from './utils'
 const app = Router();
 
-if (!ENABLE_AUTHORING_PAGE) {
+if (ENABLE_AUTHORING_PAGE) {
   app.use(express.static(path.join(__dirname, '../../authoring/dist')))
 
   app.get('/authoring', function (req, res) {
