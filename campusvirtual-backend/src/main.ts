@@ -2,12 +2,13 @@ import path from 'path'
 import cors from 'cors'
 import express from 'express'
 import fs from 'fs'
+import initData from './initData'
+import { COORDS_TO_METRES, DISABLE_AUTHORING_PAGE, KEYFRAME_IMG_DIR, KEYFRAME_IMG_EXTENSION, SEND_TEST_IMAGE } from './consts'
 
 import db from './db'
 import { processImage } from './images'
 import floorplanAPI from './floorplans'
 
-const picturesDir = '/home/skwangles/Documents/Honours/CampusVirtual/pictures/'
 
 const app = express()
 
@@ -19,9 +20,7 @@ app.get('/', function (req, res) {
   res.sendFile(path.join(__dirname, '../ui/dist', 'index.html'))
 })
 
-const send_test_image = false
 
-const COORDS_TO_METRES = 10;
 
 app.get('/point/:id/neighbours/:is_refined/:distance_thresh_m/:y_dist_thresh_m', async function (req, res) {
   // Used BFS to find all points down the graph within a range
@@ -168,8 +167,6 @@ app.get('/floorplan/:id/:is_refined', async function (req: any, res: any) {
   res.json(rows.rows)
 })
 
-
-const extension = ".png"
 app.get('/image/:detail/:ts', function (req: { params: { ts: string, detail: string } }, res) {
   const ts = Number(req.params.ts).toFixed(5);
   if (ts === "NaN") {
@@ -183,24 +180,29 @@ app.get('/image/:detail/:ts', function (req: { params: { ts: string, detail: str
   }
 
 
-  if (send_test_image) {
-    res.sendFile(picturesDir + "test.jpg");
+  if (SEND_TEST_IMAGE) {
+    res.sendFile(path.join(KEYFRAME_IMG_DIR, "test.jpg"))
     console.log("Sending Test")
     return;
   }
 
-  if (fs.existsSync(picturesDir + ts + extension)) {
+  const imgPath = path.join(KEYFRAME_IMG_DIR, ts + KEYFRAME_IMG_EXTENSION)
 
-    processImage(res, picturesDir + ts + extension, detail === "hires" ? -1 : (detail === "lores" ? 200 : 50))
+  if (fs.existsSync(imgPath)) {
+
+    processImage(res, imgPath, detail === "hires" ? -1 : (detail === "lores" ? 200 : 50))
   }
   else {
-    res.sendFile(picturesDir + "test.jpg")
+    res.sendFile(path.join(KEYFRAME_IMG_DIR, "test.jpg"))
   }
 })
 
-app.use(floorplanAPI)
+if (DISABLE_AUTHORING_PAGE) {
+  app.use(floorplanAPI)
+}
 
 const port = 3001
 app.listen(port, () => {
+  initData()
   console.log(`Server running on port ${port}`)
 })
