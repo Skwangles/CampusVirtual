@@ -8,6 +8,7 @@ import { COORDS_TO_METRES, DISABLE_AUTHORING_PAGE, KEYFRAME_IMG_DIR, KEYFRAME_IM
 import db from './db'
 import { processImage } from './images'
 import floorplanAPI from './floorplans'
+import { stripDirectoryTraversal } from './utils'
 
 
 const app = express()
@@ -19,7 +20,6 @@ app.use(express.static(path.join(__dirname, '../ui/dist')))
 app.get('/', function (req, res) {
   res.sendFile(path.join(__dirname, '../ui/dist', 'index.html'))
 })
-
 
 
 app.get('/point/:id/neighbours/:is_refined/:distance_thresh_m/:y_dist_thresh_m', async function (req, res) {
@@ -186,7 +186,11 @@ app.get('/image/:detail/:ts', function (req: { params: { ts: string, detail: str
     return;
   }
 
-  const imgPath = path.join(KEYFRAME_IMG_DIR, ts + KEYFRAME_IMG_EXTENSION)
+  const imgPath = stripDirectoryTraversal(path.join(KEYFRAME_IMG_DIR, ts + KEYFRAME_IMG_EXTENSION), KEYFRAME_IMG_DIR)
+  if (!imgPath) {
+    res.sendStatus(404);
+    return;
+  }
 
   if (fs.existsSync(imgPath)) {
 

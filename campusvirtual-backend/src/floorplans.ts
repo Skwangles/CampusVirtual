@@ -4,19 +4,20 @@ import path from "path";
 import multer from "multer";
 import fs from 'fs'
 import { SEND_TEST_IMAGE, FLOORPLAN_IMAGE_DIR, KEYFRAME_IMG_DIR, KEYFRAME_IMG_EXTENSION } from './consts'
+import { stripDirectoryTraversal } from './utils'
 const app = Router();
 
-app.use(express.static(path.join(__dirname, '../../authoring/ui/dist')))
+app.use(express.static(path.join(__dirname, '../../authoring/dist')))
 
 app.get('/authoring', function (req, res) {
-  res.sendFile(path.join(__dirname, '../../authoring/ui/dist', 'index.html'))
+  res.sendFile(path.join(__dirname, '../../authoring/dist', 'index.html'))
 });
 
 // Configure Multer for file upload handling
 const storage = multer.diskStorage({
   destination: (req: any, file: any, cb: (arg0: null, arg1: string) => void) => {
     // Ensure the uploads directory exists
-    const uploadDir = path.join(__dirname, FLOORPLAN_IMAGE_DIR);
+    const uploadDir = FLOORPLAN_IMAGE_DIR;
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir);
     }
@@ -39,7 +40,7 @@ app.post('/api/floorplans/:name/image', upload.single('file'), async (req: any, 
     }
 
     // Save the image path to the database
-    const filePath = path.join('uploads', file.filename);
+    const filePath = file.filename;
     await db.query('UPDATE floorplan_images SET path = $1 WHERE location = $2', [filePath, name]);
 
     res.send('File uploaded and path updated successfully.');
@@ -109,7 +110,37 @@ app.get('/api/image/:id', async function (req: { params: { id: number } }, res) 
     console.log("Sending Test")
     return;
   }
-  const pathString = path.join(KEYFRAME_IMG_DIR, Number(ts).toFixed(5).toString() + KEYFRAME_IMG_EXTENSION);
+  const pathString = stripDirectoryTraversal(path.join(KEYFRAME_IMG_DIR, Number(ts).toFixed(5).toString() + KEYFRAME_IMG_EXTENSION), KEYFRAME_IMG_DIR);
+  if (!pathString) {
+    res.sendStatus(404);
+    return; // Potential directory traversal attack
+  }
+
+  if (fs.existsSync(pathString)) {
+    res.sendFile(pathString)
+  }
+  else {
+    res.sendFile(path.join(KEYFRAME_IMG_DIR, "test.jpg"))
+  }
+})
+
+app.get('/api/floorplan/:name/image', async function (req: { params: { name: string } }, res) {
+  const name = Number(req.params.name);
+
+  // Using FROM nodes because its the superset
+  const result = await db.query("SELECT path FROM floorplan_images WHERE location = $1", [name])
+  if (!result || result.rowCount == 0) {
+    res.sendStatus(404);
+    return;
+  }
+
+
+  const pathString = stripDirectoryTraversal(path.join(FLOORPLAN_IMAGE_DIR, String(result.rows[0].path)), FLOORPLAN_IMAGE_DIR);
+  if (!pathString) {
+    res.sendStatus(404); // Potential directory traversal attack found
+    return;
+  }
+
   if (fs.existsSync(pathString)) {
     res.sendFile(pathString)
   }
