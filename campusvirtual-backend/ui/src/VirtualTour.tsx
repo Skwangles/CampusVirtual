@@ -1,7 +1,7 @@
 import React, {useEffect, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 // import { OrbitControls } from '@react-three/drei';
-import { API_PREFIX } from './consts';
+import { API_PREFIX, showList, showMap, COORDS_TO_METRES, addQuotationMarks} from './consts';
 import * as THREE from 'three';
 import axios from 'axios';
 import CameraRotationControls from './RotationController';
@@ -9,10 +9,6 @@ import StatsForNerds from './StatsForNerds'
 import Map from './Map';
 import FloorList from './FloorList';
 
-const COORDS_TO_METRES = 40
-const showMap = true;
-const showList = true;
-const addQuotationMarks = false;
 
 interface HotspotProps {
   position: [number, number, number];
