@@ -10,15 +10,19 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@react-three/fiber": "^8.17.6",
+    "axios": "^1.7.5",
     "konva": "^9.3.14",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-konva": "^18.2.10"
+    "react-konva": "^18.2.10",
+    "three": "^0.167.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "@types/three": "^0.167.2",
     "@vitejs/plugin-react-swc": "^3.5.0",
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
