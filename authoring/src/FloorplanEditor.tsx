@@ -43,8 +43,8 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
           setStageWidth(img.width)
           setStageHeight(img.height)
         }
-        setEdges(response.data.edges.map(edge => ({id0: String(edge.keyframe_id0), id1: String(edge.keyframe_id1)})))
-        setNodes(response.data.nodes.map(node => ({id: String(node.keyframe_id), ...node})));
+        setEdges(response.data.edges.map((edge: { keyframe_id0: any; keyframe_id1: any; }) => ({id0: String(edge.keyframe_id0), id1: String(edge.keyframe_id1)})))
+        setNodes(response.data.nodes.map((node: { keyframe_id: any; }) => ({id: String(node.keyframe_id), ...node})));
       } catch (error) {
         console.error('Error fetching floorplan data:', error);
       }
