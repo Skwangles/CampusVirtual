@@ -1,7 +1,7 @@
 import React, {useEffect, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 // import { OrbitControls } from '@react-three/drei';
-import { API_PREFIX, showList, showMap, COORDS_TO_METRES, addQuotationMarks} from './consts';
+import { API_PREFIX, showList, showMap, COORDS_TO_METRES, addQuotationMarks, PROJECT_NAME} from './consts';
 import * as THREE from 'three';
 import axios from 'axios';
 import CameraRotationControls from './RotationController';
@@ -242,6 +242,7 @@ const VirtualTour: React.FC = () => {
 
 
   useEffect(() =>{
+    document.title = locationGroup ? PROJECT_NAME + " - " + locationGroup : PROJECT_NAME;
     params.set("id", currentId)
     params.set("yaw", Number(camRotation["yaw"]).toFixed(4))
     params.set("pitch", Number(camRotation["pitch"]).toFixed(4))
@@ -273,7 +274,7 @@ const VirtualTour: React.FC = () => {
       //@ts-ignore
       setIsRefined(checkbox.checked)
     }}/></div>
-    {showMap && (<Map floorName={locationGroup} setID={setCurrentId}/>)}
+    {showMap && (<Map floorName={locationGroup} setID={setCurrentId} currentId={currentId}/>)}
     {showList && allFloorNames.length > 0 && (<FloorList floors={allFloorNames} setManualFloorSelect={setManualFloorSelect}/>)}
     <div style={{ width: "100vw", height: "100vh" }}>
     <Canvas camera={{ position: [0, 0, 10], fov: 75}} frameloop='demand' shadows>
