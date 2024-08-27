@@ -2,12 +2,15 @@ import express, { Router, Request, Response } from "express";
 import db from './db'
 import path from "path";
 import multer from "multer";
+import bodyParser from 'body-parser'
 import fs from 'fs'
 import { SEND_TEST_IMAGE, FLOORPLAN_IMAGE_DIR, KEYFRAME_IMG_DIR, KEYFRAME_IMG_EXTENSION, ENABLE_AUTHORING_PAGE } from './consts'
 import { stripDirectoryTraversal } from './utils'
 const app = Router();
 
 if (ENABLE_AUTHORING_PAGE) {
+  app.use(bodyParser.urlencoded({ extended: false }))
+  app.use(bodyParser.json())
   app.use(express.static(path.join(__dirname, '../../authoring/dist')))
 
   app.get('/authoring', function (req, res) {
@@ -53,6 +56,7 @@ if (ENABLE_AUTHORING_PAGE) {
 
   app.post('/api/floorplans/:name/update', (req: Request, res: Response) => {
     const { name } = req.params;
+    console.log(req.body)
     const { id, x, y } = req.body;
 
     db.query("UPDATE floorplan_points SET x = $1, y = $2 WHERE keyframe_id = $3 AND location = $4;", [x, y, id, name]).then(
