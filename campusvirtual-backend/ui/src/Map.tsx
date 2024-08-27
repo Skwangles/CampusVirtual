@@ -18,10 +18,11 @@ interface Edge{
 
 interface MinimapProps {
   floorName: string,
-  setID: any
+  setID: any,
+  currentId: string
 }
 
-const Map: React.FC<MinimapProps> = ({ floorName, setID }) => {
+const Map: React.FC<MinimapProps> = ({ floorName, setID, currentId }) => {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [imagePath, setImagePath] = useState<string | null>(null)
@@ -108,7 +109,7 @@ return (
             x={node.x * stageWidth}
             y={node.y * stageHeight}
             radius={5}
-            fill={node.type < 50 ?  "red" : "blue"}
+            fill={String(node.id) === String(currentId) ? "yellow" : (node.type < 50 ?  "red" : "blue")}
             name={node.id}
             onMouseUp={handleMouseUp}
           />
