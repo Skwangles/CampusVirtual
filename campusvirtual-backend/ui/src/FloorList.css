@@ -12,6 +12,7 @@
 
 
 .floor-list {
+  color: white;
   background: rgba(0, 0, 0, 0.8); /* Transparent gray background */
   padding: 10px;
   border-radius: 4px;
@@ -29,6 +30,7 @@
 .floor-list li {
   cursor: pointer;
   padding: 5px;
+  color: white;
   border-bottom: 1px solid #ccc;
 }
 
@@ -45,16 +47,4 @@
   cursor: pointer;
   z-index: 1001; /* Ensure it's above the floor list */
   margin-bottom: 5px;
-}
-
-.dialog {
-  position: fixed;
-  top: 0px;
-  left: 0px;
-  background: white;
-  color: black;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  z-index: 9999;
 }
