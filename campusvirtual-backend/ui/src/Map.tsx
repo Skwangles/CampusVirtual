@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {Stage, Image as KonvaImage, Line, Circle, Layer} from 'react-konva'
-import {API_PREFIX} from './consts'
+import {API_PREFIX, MAX_MAP_HEIGHT_PERCENT} from './consts'
 import './Map.css';
 import axios from 'axios';
 interface Node {
@@ -28,8 +28,10 @@ const Map: React.FC<MinimapProps> = ({ floorName, setID }) => {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [stageWidth, setStageWidth] = useState<number>(800);
   const [stageHeight, setStageHeight] = useState< number>(800);
+  const [closeDrawer, setCloseDrawer] = useState<boolean>(false);
 
 
+  console.log("Showing map!", imagePath, floorName)
   
   useEffect(() => {
     const fetchFloorplanData = async () => {
@@ -41,8 +43,11 @@ const Map: React.FC<MinimapProps> = ({ floorName, setID }) => {
         setImagePath(response.data.image)
         img.onload = () => {
           setImage(img);
-          setStageWidth(img.width/2)
-          setStageHeight(img.height/2)
+          const aspectRatio = img.width / img.height
+          const maxHeight = MAX_MAP_HEIGHT_PERCENT * window.innerHeight;
+          const width = maxHeight * aspectRatio
+          setStageWidth(width)
+          setStageHeight(maxHeight)
         }
         setEdges(response.data.edges.map(edge => ({id0: String(edge.keyframe_id0), id1: String(edge.keyframe_id1)})))
         setNodes(response.data.nodes.map(node => ({id: String(node.keyframe_id), ...node})));
@@ -69,8 +74,10 @@ const Map: React.FC<MinimapProps> = ({ floorName, setID }) => {
   }
 
 return (
-  <div style={{zIndex: 999, position: 'fixed', left: 0, top: 0, backgroundColor: "lightgray"}}>
-  {imagePath && imagePath != '' && (
+  <div style={{zIndex:999, position:'fixed', display: 'flex', flexDirection: 'column', left: 0, top: 0}}>
+    <button style={{zIndex: 999, padding: "5px", margin: '5px'}} onClick={() => {setCloseDrawer(!closeDrawer)}}>Toggle Map</button>
+    <div style={{backgroundColor: "lightgray"}} className='minimap-wrapper'>
+  {closeDrawer && imagePath && imagePath != '' && (
     <Stage width={stageWidth} height={stageHeight}>
       <Layer>
         {image && (<>
@@ -110,7 +117,7 @@ return (
       </Layer>
     </Stage>)}
   </div>
-)
+</div>)
 };
 
 export default Map;

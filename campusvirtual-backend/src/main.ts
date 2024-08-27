@@ -3,7 +3,7 @@ import cors from 'cors'
 import express from 'express'
 import fs from 'fs'
 import initData from './initData'
-import { COORDS_TO_METRES, DISABLE_AUTHORING_PAGE, KEYFRAME_IMG_DIR, KEYFRAME_IMG_EXTENSION, SEND_TEST_IMAGE } from './consts'
+import { COORDS_TO_METRES, ENABLE_AUTHORING_PAGE, KEYFRAME_IMG_DIR, KEYFRAME_IMG_EXTENSION, SEND_TEST_IMAGE } from './consts'
 
 import db from './db'
 import { processImage } from './images'
@@ -201,9 +201,7 @@ app.get('/image/:detail/:ts', function (req: { params: { ts: string, detail: str
   }
 })
 
-if (DISABLE_AUTHORING_PAGE) {
-  app.use(floorplanAPI)
-}
+app.use(floorplanAPI)
 
 const port = 3001
 app.listen(port, () => {
