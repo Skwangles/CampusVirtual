@@ -84,7 +84,7 @@ if (ENABLE_AUTHORING_PAGE) {
 }
 
 app.get('/api/floorplans/:name/image', async function (req: { params: { name: string } }, res) {
-  const name = Number(req.params.name);
+  const name = String(req.params.name);
 
   // Using FROM nodes because its the superset
   const result = await db.query("SELECT path FROM floorplan_images WHERE location = $1", [name])
@@ -99,12 +99,11 @@ app.get('/api/floorplans/:name/image', async function (req: { params: { name: st
     res.sendStatus(404); // Potential directory traversal attack found
     return;
   }
-
   if (fs.existsSync(pathString)) {
     res.sendFile(pathString)
   }
   else {
-    res.sendFile(path.join(KEYFRAME_IMG_DIR, "test.jpg"))
+    res.sendStatus(404);
   }
 })
 
@@ -117,7 +116,7 @@ app.get('/api/floorplans/:name', async (req: Request, res: Response) => {
 
   const edges = await db.query(`SELECT  e.keyframe_id0, e.keyframe_id1 FROM refined_edges e JOIN floorplan_points f ON e.keyframe_id0 = f.keyframe_id JOIN floorplan_points f2 ON e.keyframe_id1 = f2.keyframe_id WHERE f.location = $1 AND f2.location = $1`, [name])
   if (pointResult.rowCount && pointResult.rowCount > 0 && image.rowCount && image.rowCount > 0) {
-    res.json({ nodes: pointResult.rows, image: image.rows[0].path, edges: edges.rows })
+    res.json({ nodes: pointResult.rows, has_image: image.rows[0].path != '', image: image.rows[0].path, edges: edges.rows })
   } else {
     res.status(404).send('Floorplan not found');
   }
