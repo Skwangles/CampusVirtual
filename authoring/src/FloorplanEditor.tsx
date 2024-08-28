@@ -3,7 +3,6 @@ import axios from 'axios';
 import { Stage, Layer, Image as KonvaImage, Circle, Line } from 'react-konva';
 import FileUpload from './FileUpload'
 import PointControls from './PointControls'
-import StatsForNerds from './StatsForNerds'
 import { API_PREFIX } from './consts';
 interface Node {
   id: string
@@ -24,7 +23,7 @@ interface FloorplanEditorProps {
 const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [imagePath, setImagePath] = useState<string | null>(null)
+  const [hasImage, setHasImage] = useState<boolean>(false)
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [stageWidth, setStageWidth] = useState<number>(800);
   const [stageHeight, setStageHeight] = useState< number>(800);
@@ -32,11 +31,11 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
 
   const fetchFloorplanData = async () => {
     try {
-      const response = await axios.get<{image: string, edges: Array<{keyframe_id0: number, keyframe_id1: number}>, nodes: Array<{x: number, y: number, keyframe_id: number, type: number}>}>(`${API_PREFIX}/api/floorplans/${floorplan}`);
+      const response = await axios.get<{has_image: boolean, image: string, edges: Array<{keyframe_id0: number, keyframe_id1: number}>, nodes: Array<{x: number, y: number, keyframe_id: number, type: number}>}>(`${API_PREFIX}/api/floorplans/${floorplan}`);
       console.log(response.data)
       const img = new Image();
-      img.src = response.data.image;
-      setImagePath(response.data.image)
+      img.src = `${API_PREFIX}/api/floorplans/${floorplan}/image`;
+      setHasImage(Boolean(response.data.has_image == true))
       img.onload = () => {
         setImage(img);
         setStageWidth(img.width)
@@ -103,10 +102,10 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
     <>
     <div >
 
-    <FileUpload currentFloor={floorplan} isImageSelected={Boolean(imagePath && imagePath != '')} />
-    <div style={{border: "solid 1px"}}>
+    <FileUpload currentFloor={floorplan} isImageSelected={hasImage} />
+    <div style={{border: "solid 1px", borderRadius: "5px"}}>
     
-        {imagePath && imagePath != '' && (
+        {hasImage && (
     <Stage width={stageWidth} height={stageHeight}>
       <Layer>
         {image && (<>
@@ -152,8 +151,7 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
     </div>
     </div>
     <div>
-    <StatsForNerds selectedPoint={selectedPoint} />
-    <PointControls id={selectedPoint?.id} reloadPoints={()=>{ console.log("Reloading points"); fetchFloorplanData();}} />
+    <PointControls id={selectedPoint?.id} point={selectedPoint} reloadPoints={()=>{ console.log("Reloading points"); fetchFloorplanData();}} />
 </div>
     </>
   );
