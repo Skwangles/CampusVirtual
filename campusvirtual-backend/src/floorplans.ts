@@ -4,6 +4,7 @@ import path from "path";
 import multer from "multer";
 import bodyParser from 'body-parser'
 import fs from 'fs'
+import { replaceNode } from './utils'
 import { SEND_TEST_IMAGE, FLOORPLAN_IMAGE_DIR, KEYFRAME_IMG_DIR, KEYFRAME_IMG_EXTENSION, ENABLE_AUTHORING_PAGE } from './consts'
 import { stripDirectoryTraversal } from './utils'
 const app = Router();
@@ -73,6 +74,13 @@ if (ENABLE_AUTHORING_PAGE) {
     });
 
   });
+
+  app.delete('/api/point/:id/delete', async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const result = await replaceNode(db, Number(id))
+    res.status(result ? 200 : 409).send(result ? "Point deleted" : "Error occurred - The point may be a border point, which cannot be deleted")
+  })
 }
 
 app.get('/api/floorplans/:name/image', async function (req: { params: { name: string } }, res) {

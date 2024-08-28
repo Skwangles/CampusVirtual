@@ -2,7 +2,7 @@ import React, { useState, useEffect} from 'react';
 import axios from 'axios';
 import { Stage, Layer, Image as KonvaImage, Circle, Line } from 'react-konva';
 import FileUpload from './FileUpload'
-import EquirectangularViewer from './EquirectangularViewer'
+import PointControls from './PointControls'
 import StatsForNerds from './StatsForNerds'
 import { API_PREFIX } from './consts';
 interface Node {
@@ -30,26 +30,27 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
   const [stageHeight, setStageHeight] = useState< number>(800);
   const [selectedPoint, setSelectedPoint] = useState<Node|null>(null); 
 
-  useEffect(() => {
-    const fetchFloorplanData = async () => {
-      try {
-        const response = await axios.get<{image: string, edges: Array<{keyframe_id0: number, keyframe_id1: number}>, nodes: Array<{x: number, y: number, keyframe_id: number, type: number}>}>(`${API_PREFIX}/api/floorplans/${floorplan}`);
-        console.log(response.data)
-        const img = new Image();
-        img.src = response.data.image;
-        setImagePath(response.data.image)
-        img.onload = () => {
-          setImage(img);
-          setStageWidth(img.width)
-          setStageHeight(img.height)
-        }
-        setEdges(response.data.edges.map((edge) => ({id0: String(edge.keyframe_id0), id1: String(edge.keyframe_id1)})))
-        setNodes(response.data.nodes.map((node) => ({id: String(node.keyframe_id), ...node})));
-      } catch (error) {
-        console.error('Error fetching floorplan data:', error);
+  const fetchFloorplanData = async () => {
+    try {
+      const response = await axios.get<{image: string, edges: Array<{keyframe_id0: number, keyframe_id1: number}>, nodes: Array<{x: number, y: number, keyframe_id: number, type: number}>}>(`${API_PREFIX}/api/floorplans/${floorplan}`);
+      console.log(response.data)
+      const img = new Image();
+      img.src = response.data.image;
+      setImagePath(response.data.image)
+      img.onload = () => {
+        setImage(img);
+        setStageWidth(img.width)
+        setStageHeight(img.height)
       }
-    };
+      setEdges(response.data.edges.map((edge) => ({id0: String(edge.keyframe_id0), id1: String(edge.keyframe_id1)})))
+      setNodes(response.data.nodes.map((node) => ({id: String(node.keyframe_id), ...node})));
+    } catch (error) {
+      console.error('Error fetching floorplan data:', error);
+    }
+  };
 
+
+  useEffect(() => {
     fetchFloorplanData();
   }, [floorplan]);
 
@@ -152,7 +153,7 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
     </div>
     <div>
     <StatsForNerds selectedPoint={selectedPoint} />
-    <EquirectangularViewer id={selectedPoint?.id} />
+    <PointControls id={selectedPoint?.id} reloadPoints={()=>{ console.log("Reloading points"); fetchFloorplanData();}} />
 </div>
     </>
   );
