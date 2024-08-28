@@ -25,23 +25,19 @@ interface MinimapProps {
 const Map: React.FC<MinimapProps> = ({ floorName, setID, currentId }) => {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [imagePath, setImagePath] = useState<string | null>(null)
+  const [hasImage, setHasImage] = useState<boolean>(false);
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [stageWidth, setStageWidth] = useState<number>(800);
-  const [stageHeight, setStageHeight] = useState< number>(800);
+  const [stageHeight, setStageHeight] = useState<number>(800);
   const [closeDrawer, setCloseDrawer] = useState<boolean>(false);
 
-
-  console.log("Showing map!", imagePath, floorName)
-  
   useEffect(() => {
     const fetchFloorplanData = async () => {
       try {
-        const response = await axios.get<{image: string, edges: Array<{keyframe_id0: number, keyframe_id1: number}>, nodes: Array<{x: number, y: number, keyframe_id: number, type: number}>}>(`${API_PREFIX}/api/floorplans/${floorName}`);
-        console.log(response.data)
+        const response = await axios.get<{has_image: boolean, image: string, edges: Array<{keyframe_id0: number, keyframe_id1: number}>, nodes: Array<{x: number, y: number, keyframe_id: number, type: number}>}>(`${API_PREFIX}/api/floorplans/${floorName}`);
         const img = new Image();
-        img.src = response.data.image;
-        setImagePath(response.data.image)
+        img.src = `${API_PREFIX}/api/floorplans/${floorName}/image`;
+        setHasImage(Boolean(response.data.has_image == true))
         img.onload = () => {
           setImage(img);
           const aspectRatio = img.width / img.height
@@ -50,8 +46,8 @@ const Map: React.FC<MinimapProps> = ({ floorName, setID, currentId }) => {
           setStageWidth(width)
           setStageHeight(maxHeight)
         }
-        setEdges(response.data.edges.map(edge => ({id0: String(edge.keyframe_id0), id1: String(edge.keyframe_id1)})))
-        setNodes(response.data.nodes.map(node => ({id: String(node.keyframe_id), ...node})));
+        setEdges(response.data.edges.map((edge) => ({id0: String(edge.keyframe_id0), id1: String(edge.keyframe_id1)})))
+        setNodes(response.data.nodes.map((node) => ({id: String(node.keyframe_id), ...node})));
       } catch (error) {
         console.error('Error fetching floorplan data:', error);
       }
@@ -78,7 +74,7 @@ return (
   <div style={{zIndex:999, position:'fixed', display: 'flex', flexDirection: 'column', left: 0, top: 0}}>
     <button style={{zIndex: 999, padding: "5px", margin: '5px'}} onClick={() => {setCloseDrawer(!closeDrawer)}}>Toggle Map</button>
     <div style={{backgroundColor: "lightgray"}} className='minimap-wrapper'>
-  {closeDrawer && imagePath && imagePath != '' && (
+  {closeDrawer && hasImage && (
     <Stage width={stageWidth} height={stageHeight}>
       <Layer>
         {image && (<>
