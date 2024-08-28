@@ -125,15 +125,6 @@ app.get('/floors', async function (req: any, res: any) {
 })
 
 
-app.get('/floor/:floor/neighbours/', async function (req: any, res: any) {
-  const neighbours = await db.query("SELECT n.keyframe_id, n.pose FROM refined_nodes n JOIN refined_node_locations l ON n.keyframe_id = l.keyframe_id WHERE l.location = $1", [req.params.floor]);
-  if (neighbours.rows.length == 0) {
-    res.status(404).send("Floor not found").end()
-    return;
-  }
-  res.json(neighbours.rows)
-})
-
 app.get('/floor/:floor/point/', async function (req: any, res: any) {
   console.log("Hit floor endpoint")
   // Get FIRST node which has that location
