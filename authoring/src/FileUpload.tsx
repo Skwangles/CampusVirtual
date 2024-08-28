@@ -38,7 +38,7 @@ const FileUpload = ({currentFloor, isImageSelected}: {currentFloor: string, isIm
   };
 
   return (
-    <div>
+    <div style={{margin: "5px"}}>
       <input
         type="file"
         onChange={handleFileChange}
