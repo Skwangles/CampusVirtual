@@ -20,6 +20,7 @@
     "@types/node": "^20.14.10",
     "@types/pg": "^8.11.6",
     "@types/pg-pool": "^2.0.6",
+    "@types/three": "^0.167.2",
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "fs": "^0.0.1-security",
@@ -28,6 +29,7 @@
     "pg": "^8.12.0",
     "pg-pool": "^3.6.2",
     "sharp": "^0.33.4",
+    "three": "^0.167.1",
     "url": "^0.11.3"
   },
   "devDependencies": {
