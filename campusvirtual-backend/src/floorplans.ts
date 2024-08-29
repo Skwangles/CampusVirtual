@@ -4,7 +4,7 @@ import path from "path";
 import multer from "multer";
 import bodyParser from 'body-parser'
 import fs from 'fs'
-import { replaceNode } from './utils'
+import { connectNodes, replaceNode } from './utils'
 import { SEND_TEST_IMAGE, FLOORPLAN_IMAGE_DIR, KEYFRAME_IMG_DIR, KEYFRAME_IMG_EXTENSION, ENABLE_AUTHORING_PAGE } from './consts'
 import { stripDirectoryTraversal } from './utils'
 const app = Router();
@@ -57,7 +57,6 @@ if (ENABLE_AUTHORING_PAGE) {
 
   app.post('/api/floorplans/:name/update', (req: Request, res: Response) => {
     const { name } = req.params;
-    console.log(req.body)
     const { id, x, y } = req.body;
 
     db.query("UPDATE floorplan_points SET x = $1, y = $2 WHERE keyframe_id = $3 AND location = $4;", [x, y, id, name]).then(
@@ -80,6 +79,19 @@ if (ENABLE_AUTHORING_PAGE) {
 
     const result = await replaceNode(db, Number(id))
     res.status(result ? 200 : 409).send(result ? "Point deleted" : "Error occurred - The point may be a border point, which cannot be deleted")
+  })
+
+  app.post('/api/point/:id1/connect/:id2', async (req: Request, res: Response) => {
+    const { id1, id2 } = req.params;
+
+    const is_on_same_level = await db.query("SELECT kf1.keyframe_id, kf2.keyframe_id, kf1.location FROM floorplan_points kf1 JOIN floorplan_points kf2 ON kf1.location = kf2.location AND kf1.keyframe_id <> kf2.keyframe_id AND kf1.keyframe_id = $1 AND kf2.keyframe_id = $2 LIMIT 1;", [id1, id2])
+    if (is_on_same_level.rowCount == 0) {
+      res.status(409).send("Points are not on the same level!")
+      return;
+    }
+
+    const result = await connectNodes(db, Number(id1), Number(id2));
+    res.status(result ? 201 : 409).send(result ? "Points connected" : "Error occurred - The points may already be connected, or are border points!")
   })
 }
 
@@ -109,7 +121,7 @@ app.get('/api/floorplans/:name/image', async function (req: { params: { name: st
 
 app.get('/api/floorplans/:name', async (req: Request, res: Response) => {
   const { name } = req.params;
-  console.log("API connected")
+
   // Includes keyframes bordering the floor (add 'AND type < 50' to exclude)
   const pointResult = await db.query("SELECT keyframe_id, x, y, type FROM floorplan_points WHERE location = $1", [name]);
   const image = await db.query("SELECT path FROM floorplan_images WHERE location = $1 LIMIT 1;", [name])
