@@ -1,6 +1,6 @@
 
-import { BORDERING_FLOOR_POINT_DEFAULT_TYPE } from './consts'
-
+import { BORDERING_FLOOR_POINT_DEFAULT_TYPE, COORDS_TO_METRES } from './consts'
+import * as THREE from 'three'
 // Helper function to get neighbours
 export async function getNeighbours(db: any, keyframeId: number): Promise<any[]> {
   const result = await db.query(
@@ -68,6 +68,24 @@ export async function replaceNode(db: any, keyframeId: number) {
   return true;
 }
 
+export async function connectNodes(db: any, keyframe_id0: number, keyframe_id1: number) {
+  try {
+    await db.query("BEGIN;")
+    await db.query(`INSERT INTO refined_edges (keyframe_id0, keyframe_id1, type) VALUES ($1, $2, 2) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING;`,
+      [keyframe_id1, keyframe_id0]);
+    await db.query(`INSERT INTO refined_edges(keyframe_id0, keyframe_id1, type) VALUES($1, $2, 2) ON CONFLICT(keyframe_id0, keyframe_id1) DO NOTHING;`,
+      [keyframe_id1, keyframe_id0]
+    );
+    await db.query("COMMIT;")
+  }
+  catch (e) {
+    console.error("Failed to connect two points" + e)
+    await db.query("ROLLBACK;")
+    return false;
+  }
+  return true;
+}
+
 import path from 'path'
 
 export function stripDirectoryTraversal(user_input: string, root: string) {
@@ -76,4 +94,50 @@ export function stripDirectoryTraversal(user_input: string, root: string) {
     return false;
   }
   return safe_input;
+}
+
+// Helper function to get node position
+export async function getNodePosition(db: any, keyframeId: number, use_trans = true) {
+  const result = await db.query(
+    "SELECT pose, x_trans, y_trans, z_trans FROM refined_nodes WHERE keyframe_id = $1 LIMIT 1;",
+    [keyframeId]
+  );
+  const positionInfo = result.rows;
+  if (!positionInfo || positionInfo.length == 0) {
+    throw new Error("Could not find keyframe of ID: " + keyframeId);
+  }
+
+  const node_info = positionInfo[0];
+  if (use_trans) {
+    const ret: [number, number, number] = [
+      node_info.x_trans * COORDS_TO_METRES,
+      node_info.y_trans * COORDS_TO_METRES,
+      node_info.z_trans * COORDS_TO_METRES,
+    ];
+    if (!ret) throw new Error("Return result was Null of getNodePosition");
+    return ret;
+  }
+
+  const ret = calculatePositionFromMatrix(result.rows[0]?.pose);
+  if (!ret)
+    throw new Error(
+      "Return result was Null of getNodePosition - calculating from pose"
+    );
+  return ret;
+}
+
+export function calculatePositionFromMatrix(
+  matrix: number[]
+): [number, number, number] {
+  const m = new THREE.Matrix4();
+  //@ts-ignore
+  m.set(...matrix);
+  m.invert();
+  const position = new THREE.Vector3();
+  position.setFromMatrixPosition(m);
+  return [
+    -position.x * COORDS_TO_METRES,
+    -position.y * COORDS_TO_METRES,
+    position.z * COORDS_TO_METRES,
+  ];
 }
