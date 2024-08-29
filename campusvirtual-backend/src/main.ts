@@ -24,7 +24,6 @@ app.get('/', function (req, res) {
 
 app.get('/point/:id/neighbours/:is_refined/:distance_thresh_m/:y_dist_thresh_m', async function (req, res) {
   const is_refined = Boolean(req.params.is_refined === 'true');
-  console.log(is_refined, req.params)
   const mainPointId = Number(req.params.id)
 
   const distanceThreshold = Number(req.params.distance_thresh_m);
