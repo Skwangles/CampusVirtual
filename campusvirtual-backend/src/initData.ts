@@ -1,27 +1,30 @@
 import db from './db'
 import { FLOOR_POINT_DEFAULT_TYPE, BORDERING_FLOOR_POINT_DEFAULT_TYPE } from './consts'
-export default async function initDB() {
+export default async function initDB(quitIfTablesExist = false) {
   try {
     console.debug("Initalising data...")
     await db.query(`CREATE TABLE floorplan_images (
-      id SERIAL PRIMARY KEY,
-      location TEXT,
+      location TEXT PRIMARY KEY,
       path TEXT DEFAULT ''
       );`);
 
     await db.query(`CREATE TABLE floorplan_points (
-        id SERIAL PRIMARY KEY,
         location TEXT NOT NULL,
-        x DOUBLE PRECISION DEFAULT 0,
-        y DOUBLE PRECISION DEFAULT 0,
+        x DOUBLE PRECISION DEFAULT 0 NOT NULL,
+        y DOUBLE PRECISION DEFAULT 0 NOT NULL,
         keyframe_id INTEGER REFERENCES refined_nodes (keyframe_id),
-        type INTEGER DEFAULT 0
-        );`); // type - 0 is on floor, 50+ is a node of a type not on the current floor (so you can do a < 50 to get all on current floor)
+        type INTEGER DEFAULT 0 NOT NULL,
+        PRIMARY KEY(keyframe_id, location)
+    );
+        `); // type - 0 is on floor, 50+ is a node of a type not on the current floor (so you can do a < 50 to get all on current floor)
   }
   catch (e) {
 
-    console.log("Already built x and Y, skipping data init!")
-    return;
+    console.log("Already built floorplan_images and floorplan_points!")
+    if (quitIfTablesExist) {
+      console.log("Skipping map data init!")
+      return;
+    }
   }
   try {
     await db.query("BEGIN;");
@@ -58,17 +61,17 @@ export default async function initDB() {
         // Don't need to wait for this
         const initX = clampToPostive((node.x_trans - minX) / (maxX - minX))
         const initY = clampToPostive((node.z_trans - minZ) / (maxZ - minZ))
-        db.query("INSERT INTO floorplan_points (location, keyframe_id, type, x, y) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING;", [location, node.keyframe_id, FLOOR_POINT_DEFAULT_TYPE, initX, initY])
+        db.query("INSERT INTO floorplan_points (location, keyframe_id, type, x, y) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (keyframe_id, location) DO NOTHING;", [location, node.keyframe_id, FLOOR_POINT_DEFAULT_TYPE, initX, initY])
       }
 
       for (const border_node of borderNodes) {
         const initX = clampToPostive((border_node.x_trans - minX) / (maxX - minX))
         const initY = clampToPostive((border_node.z_trans - minZ) / (maxZ - minZ))
 
-        db.query("INSERT INTO floorplan_points (location, keyframe_id, type, x, y) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING;", [location, border_node.keyframe_id, BORDERING_FLOOR_POINT_DEFAULT_TYPE, initX, initY])
+        db.query("INSERT INTO floorplan_points (location, keyframe_id, type, x, y) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (keyframe_id, location) DO NOTHING;", [location, border_node.keyframe_id, BORDERING_FLOOR_POINT_DEFAULT_TYPE, initX, initY])
       }
 
-      db.query(`INSERT INTO floorplan_images (location) VALUES ($1) ON CONFLICT DO NOTHING`, [location]);
+      db.query(`INSERT INTO floorplan_images (location) VALUES ($1) ON CONFLICT (location) DO NOTHING`, [location]);
     }
 
     await db.query("COMMIT;")
