@@ -139,9 +139,15 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
             fill={node.type < 50 ?  "red" : "blue"}
             name={node.id}
             draggable
+            
             onMouseDown={handleMouseDown}
+            onTouchStart={handleMouseDown}
+            
             onMouseUp={handleMouseUp}
+            onTouchEnd={handleMouseUp}
+
             onDragMove={handleDragMove}
+            onTouchMove={handleDragMove}
           />
         ))}
         </>)}
