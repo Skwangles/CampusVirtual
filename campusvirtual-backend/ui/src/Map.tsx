@@ -108,6 +108,8 @@ return (
             fill={String(node.id) === String(currentId) ? "yellow" : (node.type < 50 ?  "red" : "blue")}
             name={node.id}
             onMouseUp={handleMouseUp}
+            onTouchEnd={handleMouseUp}
+            
           />
         ))}
         </>)}
