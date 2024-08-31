@@ -167,6 +167,8 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
 
             
             is_not_end = video.read(frame);
+            double ms = video.get(cv::CAP_PROP_POS_MSEC);
+            timestamp = start_timestamp + (ms/1000);
             
 
             const auto tp_1 = std::chrono::steady_clock::now();
@@ -194,7 +196,7 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                         cv::imwrite(filepath, frame, params); 
                         
                         if (json_obj != NULL){
-                            double ms = video.get(cv::CAP_PROP_POS_MSEC);
+                            
                             std::string group = find_group_from_json(json_obj, ms);
                             timestamp_group_list.emplace_back(group, timestamp, ms);
                             std::cout << "Group: " << group << std::endl;
@@ -221,8 +223,7 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                     std::this_thread::sleep_for(std::chrono::microseconds(static_cast<unsigned int>(wait_time * 1e6)));
                 }
             }
-
-            timestamp += 1.0 / slam->get_camera()->fps_;
+            
             ++num_frame;
 
 
