@@ -5,9 +5,9 @@ Camera:
   setup: 'monocular'
   model: 'equirectangular'
 
-  fps: 30.0
-  cols: 1920
-  rows: 960
+  fps: 30
+  cols: 5760
+  rows: 2880
 
   color_order: 'RGB'
 
