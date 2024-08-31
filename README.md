@@ -28,6 +28,8 @@ Super important that you do it _recursive_, as we have submodules that need clon
 - (If using the GSV style interface) Make sure Docker is installed, and open the CampusVirtual-SocketViewer in a separate terminal and run `node app.js`
 - Modify `RUNME.sh` to run the controller on the videos you want, or just manually run the `g++ ./runCampusVirtual.cc -o runCampusVirtual -lboost_program_options` to build and then use as desired.
 
+`./runCampusVirtual <view SLAM headless/without a viewer (true|false)> ./ <video1.mp4,video2.mp4,video3.mp4> --out <test.db> --media_dir <absolute path to dir of Video/ e.g. /campusvirtua/Video> --map_dir <abs path of Map/> --json_dir <absoluteo path to JSON/ e.g. /campusvirtual/JSON/>`
+
 # Modules
 
 ### CampusVirtual-FileProcessing - Insta360 SDK and image processor
