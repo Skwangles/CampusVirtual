@@ -14,7 +14,8 @@ int main(int argc, char** argv) {
         ("help,h", "produce help message")
         ("headless", po::value<bool>()->default_value(false), "Use headless (true|false)")
         ("project_dir", po::value<std::string>()->required(), "Campus virtual project directory")
-        ("media_dir", po::value<std::string>()->required(), "Media directory - videos and maps")
+        ("media_dir", po::value<std::string>()->required(), "Media directory - videos")
+        ("map_dir", po::value<std::string>()->required(), "Map directory - maps")
         ("videos", po::value<std::string>()->required(), "Comma-separated ordered videos")
         ("in", po::value<std::string>(), "Input map (*.db)")
         ("out", po::value<std::string>()->required(), "Output map (*.db)")
@@ -50,6 +51,7 @@ int main(int argc, char** argv) {
         std::string map_in = vm.count("in") ? vm["in"].as<std::string>() : "";
         std::string map_out = vm["out"].as<std::string>();
         std::string media_dir = vm["media_dir"].as<std::string>();
+        std::string map_dir = vm["map_dir"].as<std::string>();
         std::string json_dir = vm["json_dir"].as<std::string>();
         bool convert_to_graph = vm.count("convertToGraph");
         bool convert_to_pg = vm.count("convertToPg");
@@ -63,25 +65,25 @@ int main(int argc, char** argv) {
              command = project_dir + path_to_stella + "slam_to_pg" +
                               " -c " + project_dir + path_to_config +
                               " -v " + project_dir + path_to_fbow +
-                              " --map-db-in " + media_dir + "/Maps/" + map_in +
+                              " --map-db-in " + map_dir + "/" + map_in +
                               " --db " + connection_string;
         }
         else if (convert_to_graph){
             command = project_dir + path_to_stella + "campus_virtual_viewer" +
                               " -c " + project_dir + path_to_config +
                               " -v " + project_dir + path_to_fbow +
-                              (map_in.empty() ? "" : " --map-db-in " + media_dir + "/Maps/" + map_in) +
-                              " --map-db-out " +  media_dir + "/Maps/" + map_out;
+                              (map_in.empty() ? "" : " --map-db-in " + map_dir + "/" + map_in) +
+                              " --map-db-out " +  map_dir + "/" + map_out;
         }
         else {
             command = project_dir + path_to_stella + "campus_virtual" +
                                         " -c " + project_dir + path_to_config +
                                         " -v " + project_dir + path_to_fbow +
-                                        (map_in.empty() ? "" : " --map-db-in " + media_dir + "/Maps/" + map_in) +
-                                        " --map-db-out " +  media_dir + "/Maps/" + map_out +
+                                        (map_in.empty() ? "" : " --map-db-in " + map_dir + "/" + map_in) +
+                                        " --map-db-out " +  map_dir + "/" + map_out +
                                         " --videos " + videos +
                                         " --no-sleep " + // Operate faster than real time
-                                        " --video-dir " +  media_dir + "/Video/ " +
+                                        " --video-dir " +  media_dir + "/" +
                                         " --json-dir " + json_dir + "/" + // Only required for 'pairing JSON with frames' step
                                        (use_headless ? " --viewer none" : " --viewer iridescence_viewer");
         }
