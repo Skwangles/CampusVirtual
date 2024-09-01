@@ -1,6 +1,7 @@
 #pragma once
 
 #include <nlohmann/json.hpp>
+#include <stdio.h>
 
 nlohmann::json filename_to_json_obj(std::string json_filename, std::string json_dir){
     nlohmann::json json_obj;
@@ -32,6 +33,7 @@ std::string find_group_from_json(nlohmann::json &obj, double &ms){
             return group;
         }
         group = timecode["g"].dump();
+        group.erase(std::remove(group.begin(), group.end(), '\"'), group.end());
     }
 
     return group;
