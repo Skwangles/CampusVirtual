@@ -168,7 +168,10 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
             
             is_not_end = video.read(frame);
             double ms = video.get(cv::CAP_PROP_POS_MSEC);
+            double frame_count = video.get(cv::CAP_PROP_FRAME_COUNT);
+            double fps = video.get(cv::CAP_PROP_FPS);
             timestamp = start_timestamp + (ms/1000);
+            
             
 
             const auto tp_1 = std::chrono::steady_clock::now();
@@ -188,6 +191,7 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                     std::string filepath = image_output_dir + timestamp_string + ".png";
 
                     if (is_keyframe || num_frame == 0){
+                        std::cout << "Keyframe made - Progress: " <<  ((ms/1000) / (frame_count/fps)) * 100 << "% - ms: " << ms << std::endl;
                         std::vector<int> params; 
                         params.push_back(cv::IMWRITE_JPEG_QUALITY); 
                         params.push_back(100); // 0-100 - 100 = highest quality
@@ -199,7 +203,7 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                             
                             std::string group = find_group_from_json(json_obj, ms);
                             timestamp_group_list.emplace_back(group, timestamp, ms);
-                            std::cout << "Group: " << group << std::endl;
+                            std::cout << "Location: " << group << std::endl;
                         }
                         else{
                             std::cout << "JSON Obj was null!" << std::endl;
