@@ -148,8 +148,11 @@ cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 make -j
 sudo make install
 
+# YOUR WORKING DIRECTORY
+cd /home/skwangles/Documents/Honours/CampusVirtual/
+
 # Installs MediaSDKTest tool for stitching videos
-sudo dpkg -i ./CampusVirtual-FileProcessing/libMediaSDK-dev_2.0-3_amd64_ubuntu18.04.deb
+sudo dpkg -i CampusVirtual-FileProcessing/libMediaSDK-dev_2.0-3_amd64_ubuntu18.04.deb
 
 cd PgSocketViewer && sudo npm install && cd ..
 
