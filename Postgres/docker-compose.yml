@@ -14,14 +14,19 @@ services:
     #    tmpfs:
     #      size: 134217728 # 128*2^20 bytes = 128Mb
     environment:
-      POSTGRES_USER: test
-      POSTGRES_PASSWORD: test
-      POSTGRES_DB: campusvirtual
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PWD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
     ports:
-      - '5432:5432'
+      - '${DB_PORT}:5432'
 
   adminer:
     image: adminer
     restart: always
     ports:
-      - 8080:8080
+      - ${DB_ADMINER}:8080
+
+volumes:
+  pgdata:
