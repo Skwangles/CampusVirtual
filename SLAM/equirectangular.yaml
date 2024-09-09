@@ -14,11 +14,6 @@ Camera:
 # FOV 137.5, circle_of_confusion=0.006, focallen=1.3 (35mm equalivalent: 7mm), hyperfocal distance = 0.15m
 Preprocessing:
   min_size: 800
-  mask_rectangles:
-    - [0.0, 1.0, 0.0, 0.1]
-    - [0.0, 1.0, 0.84, 1.0]
-    - [0.0, 0.2, 0.7, 1.0]
-    - [0.8, 1.0, 0.7, 1.0]
 
 Feature:
   name: 'default ORB feature extraction setting'
@@ -37,12 +32,12 @@ Mapping:
 
 Tracking:
   backend: 'g2o'
+  enable_auto_relocalization: true
 
 LoopDetector:
   backend: 'g2o'
   enabled: true
   reject_by_graph_distance: true
-  loop_min_distance_on_graph: 50
 
 GraphOptimizer:
   min_num_shared_lms: 200
@@ -53,12 +48,13 @@ GlobalOptimizer:
 KeyframeInserter:
   # min_distance: 0.1
   # min_interval: 0.3
-  # wait_for_local_bundle_adjustment: true
+  wait_for_local_bundle_adjustment: true
 
 System:
   map_format: 'sqlite3'
   num_grid_cols: 96
   num_grid_rows: 48
+  min_num_shared_lms: 200
 
 SocketPublisher:
   emitting_interval: 0.5
