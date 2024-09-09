@@ -6,6 +6,12 @@ std::string path_to_stella = "SLAM/CampusVirtualInterface/build/";
 std::string path_to_fbow = "SLAM/FBoW/orb_vocab.fbow";
 std::string path_to_config = "SLAM/equirectangular.yaml";
 
+std::string db_user = "campusvirtual";
+std::string db_pwd = "Squeegee-Grandkid-Superhero8";
+std::string db_name = "cv";
+std::string db_port = "5432";
+
+
 namespace po = boost::program_options;
 
 int main(int argc, char** argv) {
@@ -60,9 +66,8 @@ int main(int argc, char** argv) {
 
         std::string command;
         if (convert_to_pg){
-            std::string connection_string = "postgresql://test:test@localhost:5432/campusvirtual";
-            //"pgloader " + media_dir + "/Maps/" + map_in + " " + connection_string + " \n " +
-             command = project_dir + path_to_stella + "slam_to_pg" +
+            std::string connection_string = "postgresql://" + db_user + ":" + db_pwd + "@localhost:" + db_port + "/" + db_name;
+            command = project_dir + path_to_stella + "slam_to_pg" +
                               " -c " + project_dir + path_to_config +
                               " -v " + project_dir + path_to_fbow +
                               " --map-db-in " + map_dir + "/" + map_in +

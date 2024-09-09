@@ -1,9 +1,9 @@
 import Pool  from 'pg-pool'
 
 const dbConfig = {
-  user: 'test',
-  password: 'test',
-  database: 'campusvirtual',
+  user: 'campusvirtual',
+  password: 'Squeegee-Grandkid-Superhero8',
+  database: 'cv',
   host: 'localhost',
   port: 5432,
 }
