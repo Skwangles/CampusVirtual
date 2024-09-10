@@ -130,9 +130,9 @@ make -j4
 sudo make install
 # MAYBE TRY PATCH THE STELLA WITH MY MODIFICATIONS
 
-# When building with support for IridescenceViewer
+# When building with support for IridescenceViewer - allows you to manually trigger loop closures
 cd ~/lib
-git clone --recursive https://github.com/stella-cv/iridescence_viewer.git
+git clone --recursive https://github.com/Skwangles/iridescence_viewer.git
 mkdir -p iridescence_viewer/build
 cd iridescence_viewer/build
 cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
