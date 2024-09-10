@@ -360,6 +360,7 @@ int main(int argc, char* argv[]) {
     auto json_dir = op.add<popl::Value<std::string>>("", "json-dir", "directory containing json files for timestamp-to-group calculations");
     auto videos = op.add<popl::Value<std::string>>("", "videos", "set of comma separated videos files to process (e.g. g-block.mp4,g-block2.mp4)");
     auto video_dir = op.add<popl::Value<std::string>>("", "video-dir", "directory containing video files, if not set must be part of the videos option");
+    auto img_output_dir = op.add<popl::Value<std::string>>("p", "picture-dir", "Directory to put keyframe img snapshots in", "pictures/");
    
     try {
         op.parse(argc, argv);
@@ -555,7 +556,7 @@ int main(int argc, char* argv[]) {
                                 viewer_string, 
                                 json_obj, 
                                 timestamp_group_list,
-                                "pictures/",
+                                img_output_dir->value(),
                                 img_size["cols"].as<unsigned int>(),
                                 img_size["rows"].as<unsigned int>()
                                 );

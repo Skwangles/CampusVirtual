@@ -27,7 +27,8 @@ int main(int argc, char** argv) {
         ("out", po::value<std::string>()->required(), "Output map (*.db)")
         ("json_dir", po::value<std::string>(), "JSON group-to-timestamp file directory")
         ("convertToGraph", "Convert to graph (optional)")
-        ("convertToPg", "Convert to Postgres (optional)");
+        ("convertToPg", "Convert to Postgres (optional)")
+        ("picture-dir", po::value<std::string>()->default_value("pictures/"), "Keyframe image output dir - Default 'pictures/'");
 
     po::positional_options_description pos_desc;
     pos_desc.add("headless", 1);
@@ -61,6 +62,7 @@ int main(int argc, char** argv) {
         std::string json_dir = vm["json_dir"].as<std::string>();
         bool convert_to_graph = vm.count("convertToGraph");
         bool convert_to_pg = vm.count("convertToPg");
+        std::string picture_dir = vm["picture-dir"].as<std::string>();
 
 
 
@@ -90,6 +92,7 @@ int main(int argc, char** argv) {
                                         " --no-sleep " + // Operate faster than real time
                                         " --video-dir " +  media_dir + "/" +
                                         " --json-dir " + json_dir + "/" + // Only required for 'pairing JSON with frames' step
+                                        " --picture-dir " + picture_dir + "/" +
                                        (use_headless ? " --viewer none" : " --viewer iridescence_viewer");
         }
         
