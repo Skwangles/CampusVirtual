@@ -22,6 +22,7 @@
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/types.hpp>
 #include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
 #include <opencv2/videoio.hpp>
 #include <spdlog/spdlog.h>
 #include <popl.hpp>
@@ -32,6 +33,7 @@ namespace fs = ghc::filesystem;
 
 #include "util/save_to_db.hpp"
 #include "util/handle_json.hpp"
+#include "util/yaml.h"
 
 #ifdef USE_STACK_TRACE_LOGGER
 #include <backward.hpp>
@@ -46,6 +48,7 @@ static int db_callback(std::vector<video_timestamp> *data, int argc, char **argv
    return 0;
 }
 
+const std::string DEFAULT_UNKNOWN_GROUP = "Unknown";
 
 
 int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
@@ -63,7 +66,9 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                   const std::string& viewer_string,
                   nlohmann::json& json_obj,
                   std::vector<timestamp_group> &timestamp_group_list,
-                  const std::string& image_output_dir = "pictures/"
+                  const std::string& image_output_dir = "pictures/",
+                  const unsigned int slam_img_width = 1920,
+                  const unsigned int slam_img_height = 960
                   ) {
     // load the mask image
     const cv::Mat mask = mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE);
@@ -82,6 +87,10 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
 #endif
 #ifdef HAVE_IRIDESCENCE_VIEWER
     std::shared_ptr<iridescence_viewer::viewer> iridescence_viewer;
+
+    std::mutex mtx_loop;
+    bool loop_id = 0;
+
     std::mutex mtx_pause;
     bool is_paused = false;
     std::mutex mtx_terminate;
@@ -93,6 +102,10 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
             stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "IridescenceViewer"),
             slam->get_frame_publisher(),
             slam->get_map_publisher());
+        // iridescnce_viewer->add_input_int("Loop ID", [&loop_id](int id){
+        //     std::lock_guard<std::mutex> lock(mtx_loop);
+        //     loop_id = id;
+        // })
         iridescence_viewer->add_checkbox("Pause", [&is_paused, &mtx_pause](bool check) {
             std::lock_guard<std::mutex> lock(mtx_pause);
             is_paused = check;
@@ -104,6 +117,8 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
         iridescence_viewer->add_button("Reset", [&is_paused, &mtx_pause, &slam] {
             slam->request_reset();
         });
+        // iridesence_viewer->add_button("Force Loop Connect", []{})
+
         iridescence_viewer->add_button("Save and exit", [&is_paused, &mtx_pause, &terminate_is_requested, &mtx_terminate, &slam, &iridescence_viewer] {
             std::lock_guard<std::mutex> lock1(mtx_pause);
             is_paused = false;
@@ -130,6 +145,7 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
     std::vector<double> track_times;
 
     cv::Mat frame;
+    cv::Mat downsized_frame;
 
     unsigned int num_frame = 0;
     double timestamp = start_timestamp;
@@ -179,7 +195,8 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
             
 
             if (!frame.empty() && (num_frame % frame_skip == 0)) {
-		        bool is_keyframe = slam->feed_monocular_frame_bool(frame, timestamp, mask);
+                cv::resize(frame, downsized_frame, cv::Size(slam_img_width, slam_img_height));
+		        bool is_keyframe = slam->feed_monocular_frame_bool(downsized_frame, timestamp, mask);
                 
                 std::cout << "Frame - Progress: " <<  ((ms/1000) / (frame_count/fps)) * 100 << "% - ms: " << ms << std::endl;
 
@@ -207,7 +224,8 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                             std::cout << "Keyframe made - Location: " << group << std::endl;
                         }
                         else{
-                            std::cout << "JSON Obj was null!" << std::endl;
+                            timestamp_group_list.emplace_back(DEFAULT_UNKNOWN_GROUP, timestamp, ms);
+                            std::cout << "JSON Obj was null! - Using default:" << DEFAULT_UNKNOWN_GROUP << std::endl;
                         }
                         
                     }
@@ -342,7 +360,6 @@ int main(int argc, char* argv[]) {
     auto json_dir = op.add<popl::Value<std::string>>("", "json-dir", "directory containing json files for timestamp-to-group calculations");
     auto videos = op.add<popl::Value<std::string>>("", "videos", "set of comma separated videos files to process (e.g. g-block.mp4,g-block2.mp4)");
     auto video_dir = op.add<popl::Value<std::string>>("", "video-dir", "directory containing video files, if not set must be part of the videos option");
-    
    
     try {
         op.parse(argc, argv);
@@ -518,6 +535,8 @@ int main(int argc, char* argv[]) {
             slam->disable_loop_detector();
         }
 
+        auto img_size = yaml_optional_ref(cfg->yaml_node_, "Camera");
+
         // run tracking
         double finish_timestamp = 0.0;
         if (slam->get_camera()->setup_type_ == stella_vslam::camera::setup_type_t::Monocular) {
@@ -536,7 +555,9 @@ int main(int argc, char* argv[]) {
                                 viewer_string, 
                                 json_obj, 
                                 timestamp_group_list,
-                                "pictures/"
+                                "pictures/",
+                                img_size["cols"].as<unsigned int>(),
+                                img_size["rows"].as<unsigned int>()
                                 );
         }
         else {
