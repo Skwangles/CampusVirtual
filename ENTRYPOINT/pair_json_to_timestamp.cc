@@ -136,6 +136,5 @@ int main(int argc, char *argv[]) {
 
     sqlite3_finalize(stmt);
     sqlite3_close(db);
-    conn.disconnect();
     return 0;
 }

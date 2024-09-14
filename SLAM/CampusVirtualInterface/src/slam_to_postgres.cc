@@ -240,8 +240,6 @@ void convert_to_pg(const std::shared_ptr<stella_vslam::system>& slam,
 
     txn.commit();
 
-    conn.disconnect();
- 
 }
 
 
