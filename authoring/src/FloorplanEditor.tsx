@@ -239,27 +239,37 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
     <>
       <div>
         <FileUpload currentFloor={floorplan} isImageSelected={hasImage} />
-        <div style={{ display: 'flex', flexBasis: '10%', flexWrap: 'wrap' }}>
-          <button onClick={() => rotatePoints()}>
-            Rotate All Points 90 Degrees
-          </button>
-          <button onClick={() => flipPointsVertically()}>
-            Flip All Points Vertically
-          </button>
-          <button onClick={() => flipPointsHorizontally()}>
-            Flip All Points Horizontally
-          </button>
-          <button onClick={() => rotatePoints(true)}>
-            Rotate Selected (Green) Points 90 Degrees
-          </button>
-          <button onClick={() => flipPointsVertically(true)}>
-            Flip Selected Points Vertically
-          </button>
-          <button onClick={() => flipPointsHorizontally(true)}>
-            Flip Selected Points Horizontally
-          </button>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div>
+            <button onClick={() => rotatePoints()}>
+              Rotate All Points 90 Degrees
+            </button>
+            <button onClick={() => flipPointsVertically()}>
+              Flip All Points Vertically
+            </button>
+            <button onClick={() => flipPointsHorizontally()}>
+              Flip All Points Horizontally
+            </button>
+          </div>
+          <div>
+            <button onClick={() => rotatePoints(true)}>
+              Rotate Selected (Green) Points 90 Degrees
+            </button>
+            <button onClick={() => flipPointsVertically(true)}>
+              Flip Selected Points Vertically
+            </button>
+            <button onClick={() => flipPointsHorizontally(true)}>
+              Flip Selected Points Horizontally
+            </button>
+          </div>
         </div>
-        <div style={{ border: 'solid 1px', borderRadius: '5px' }}>
+        <div
+          style={{
+            border: 'solid 1px',
+            borderRadius: '5px',
+            width: 'fit-content',
+          }}
+        >
           {hasImage && (
             <Stage
               width={stageWidth}
