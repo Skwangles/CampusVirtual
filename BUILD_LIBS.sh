@@ -1,3 +1,5 @@
+echo "DO NOT RUN WITH SUDO - otherwise the 'root' user will own the g2o, iridescence, and other libraries in /tmp, which means it won't compile with the right access to libs"
+
 # Stella libs - https://stella-cv.readthedocs.io/en/latest/installation.html
 sudo apt update -y
 sudo apt upgrade -y --no-install-recommends
@@ -29,7 +31,6 @@ sudo apt install -y libglm-dev libglfw3-dev libpng-dev libjpeg-dev libeigen3-dev
 # Protobuf dependencies
 sudo apt install -y autogen autoconf libtool
 # Node.js
-# curl -sL https://deb.nodesource.com/setup_18.x | sudo -E bash - # OLD VERSION WE DON'T WANT TO USE
 sudo apt install -y nodejs
 sudo apt install -y npm
 
@@ -39,7 +40,7 @@ sudo ldconfig # update lookup library paths - IMPORTANT if 'libxx.so' not found.
 cd /tmp
 git clone https://github.com/stella-cv/FBoW.git
 cd FBoW
-mkdir build && cd build
+mkdir build -p && cd build
 cmake \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=/usr/local \
@@ -57,10 +58,10 @@ sudo apt install libopencv-dev
 cd /tmp
 git clone https://github.com/RainerKuemmerle/g2o.git
 cd g2o
-git checkout 20230806_git
-mkdir build && cd build
-cmake \ 
-    -DCMAKE_BUILD_TYPE=Release \
+git checkout 20230223_git
+
+mkdir build -p && cd build
+cmake -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=/usr/local \
     -DBUILD_SHARED_LIBS=ON \
     -DBUILD_UNITTESTS=OFF \
@@ -80,7 +81,7 @@ cd /tmp
 git clone https://github.com/bombela/backward-cpp.git
 cd backward-cpp
 git checkout 5ffb2c879ebdbea3bdb8477c671e32b1c984beaa
-mkdir build && cd build
+mkdir build -p && cd build
 cmake \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=/usr/local \
@@ -95,7 +96,7 @@ git clone https://github.com/koide3/iridescence.git
 cd iridescence
 git checkout 085322e0c949f75b67d24d361784e85ad7f197ab
 git submodule update --init --recursive
-mkdir build && cd build
+mkdir build -p && cd build
 cmake \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     ..
@@ -108,7 +109,7 @@ git clone https://github.com/shinsumicco/socket.io-client-cpp.git
 cd socket.io-client-cpp
 git submodule init
 git submodule update
-mkdir build && cd build
+mkdir build -p && cd build
 cmake \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=/usr/local \
@@ -124,7 +125,7 @@ mkdir -p ~/lib
 cd ~/lib
 git clone --recursive https://github.com/Skwangles/stella_vslam.git
 cd stella_vslam
-mkdir build && cd build
+mkdir build -p && cd build
 cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 make -j4
 sudo make install
@@ -158,3 +159,6 @@ cd PgSocketViewer && sudo npm install && cd ..
 
 sudo ldconfig # update lookup library paths again - IMPORTANT if 'libxx.so' not found.
 
+# IF G2O gives a QT error - sudo apt install -y qtcreator qtbase5-dev qt5-qmake cmake
+
+echo "IF YOU RAN 'sudo ./BUILD_LIBS.sh' - you will need to run 'sudo chown' the /tmp/g2o, /tmp/iridescence, /tmp/backward-cpp, and /tmp/socket.io-client-cpp and /tmp/FBoW folders to fix their access for CampusVirtual"
