@@ -4,7 +4,7 @@ import path from "path";
 import multer from "multer";
 import bodyParser from 'body-parser'
 import fs from 'fs'
-import { connectNodes, replaceNode } from './utils'
+import { disconnectNodes, connectNodes, replaceNode } from './utils'
 import { SEND_TEST_IMAGE, FLOORPLAN_IMAGE_DIR, KEYFRAME_IMG_DIR, KEYFRAME_IMG_EXTENSION, ENABLE_AUTHORING_PAGE } from './consts'
 import { stripDirectoryTraversal } from './utils'
 const app = Router();
@@ -92,6 +92,19 @@ if (ENABLE_AUTHORING_PAGE) {
 
     const result = await connectNodes(db, Number(id1), Number(id2));
     res.status(result ? 201 : 409).send(result ? "Points connected" : "Error occurred - The points may already be connected, or are border points!")
+  })
+
+  app.delete('/api/point/:id1/connect/:id2', async (req: Request, res: Response) => {
+    const { id1, id2 } = req.params;
+
+    const is_edge = await db.query("SELECT * FROM refined_edges WHERE (keyframe_id0 = $1 AND keyframe_id1 = $2) OR (keyframe_id0 = $2 AND keyframe_id1 = $1) LIMIT 1;", [id1, id2])
+    if (is_edge.rowCount == 0) {
+      res.status(409).send("Points are not connected!")
+      return;
+    }
+
+    const result = await disconnectNodes(db, Number(id1), Number(id2));
+    res.status(result ? 201 : 409).send(result ? "Points connected" : "Error occurred - The points may already be disconnected, or are border points!")
   })
 }
 
