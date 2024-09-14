@@ -72,7 +72,7 @@ export async function connectNodes(db: any, keyframe_id0: number, keyframe_id1: 
   try {
     await db.query("BEGIN;")
     await db.query(`INSERT INTO refined_edges (keyframe_id0, keyframe_id1, type) VALUES ($1, $2, 2) ON CONFLICT (keyframe_id0, keyframe_id1) DO NOTHING;`,
-      [keyframe_id1, keyframe_id0]);
+      [keyframe_id0, keyframe_id1]);
     await db.query(`INSERT INTO refined_edges(keyframe_id0, keyframe_id1, type) VALUES($1, $2, 2) ON CONFLICT(keyframe_id0, keyframe_id1) DO NOTHING;`,
       [keyframe_id1, keyframe_id0]
     );
@@ -85,6 +85,22 @@ export async function connectNodes(db: any, keyframe_id0: number, keyframe_id1: 
   }
   return true;
 }
+
+export async function disconnectNodes(db: any, keyframe_id0: number, keyframe_id1: number) {
+  try {
+    await db.query("BEGIN;")
+    await db.query(`DELETE FROM refined_edges WHERE (keyframe_id0 = $1 AND keyframe_id1 = $2) OR (keyframe_id0 = $2 AND keyframe_id1 = $1);`,
+      [keyframe_id0, keyframe_id1]);
+    await db.query("COMMIT;")
+  }
+  catch (e) {
+    console.error("Failed to connect two points" + e)
+    await db.query("ROLLBACK;")
+    return false;
+  }
+  return true;
+}
+
 
 import path from 'path'
 
