@@ -10,7 +10,9 @@ echo "MUST BE RUN IN root CampusVirtual/"
 cd CampusVirtual-FileProcessing/ && g++ ./ProcessFiles.cpp -o ./ProcessFiles && cd ..
 
 mkdir -p SLAM/CampusVirtualInterface/build
-cd SLAM/CampusVirtualInterface/build && cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DUSE_STACK_TRACE_LOGGER=ON .. && make -j4 && cd ../../../
+cd SLAM/CampusVirtualInterface/build 
+cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DUSE_STACK_TRACE_LOGGER=ON ..
+sudo make -j4 && cd ../../../
 
 # Build controller program
 g++ ./ENTRYPOINT/runCampusVirtual.cc -o runCampusVirtual -lboost_program_options
