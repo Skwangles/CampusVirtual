@@ -6,4 +6,7 @@ export const COORDS_TO_METRES = 10;
 export const FLOORPLAN_IMAGE_DIR = "/home/skwangles/Documents/Honours/CampusVirtual/floorplans/"
 export const KEYFRAME_IMG_EXTENSION = ".png"
 
+
+
+
 export const ENABLE_AUTHORING_PAGE = true;
