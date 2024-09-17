@@ -11,7 +11,7 @@ import { API_PREFIX, showMap, COORDS_TO_METRES, PROJECT_NAME } from './consts'
 import * as THREE from 'three'
 import axios from 'axios'
 import CameraRotationControls from './RotationController'
-import StatsForNerds from './StatsForNerds'
+import Instructions from './Instructions'
 import Map from './Map'
 import SearchBar from './SearchBar'
 import { toast, ToastContainer, Bounce } from 'react-toastify'
@@ -402,14 +402,14 @@ const VirtualTour: React.FC = () => {
           left: 0,
           bottom: 0,
           zIndex: 999,
-          fontSize: '3rem',
+          fontSize: '2rem',
           padding: '5px',
           borderRadius: '10px',
         }}
       >
         Location: {currentPoint.location}
       </div>
-      <StatsForNerds point={currentPoint} />
+      <Instructions point={currentPoint} />
       {showMap && (
         <Map
           floorName={locationGroup}
