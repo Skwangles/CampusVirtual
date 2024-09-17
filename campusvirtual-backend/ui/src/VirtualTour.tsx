@@ -267,9 +267,10 @@ const VirtualTourContent: React.FC<any> = ({
 
 const VirtualTour: React.FC = () => {
   let params = new URLSearchParams(window.location.search)
+
   const [currentId, setCurrentId] = useState<string>(() => {
     if (params.has('id')) {
-      return params.get('id')!
+      return params.get('id') ?? '-1'
     }
     return '-1'
   })
@@ -295,14 +296,6 @@ const VirtualTour: React.FC = () => {
     return { yaw: 0, pitch: 0 }
   })
 
-  useEffect(() => {
-    // RUN ON FIRST LOAD
-    axios.get<{ location: string }[]>(API_PREFIX + '/floors').then((result) => {
-      console.log('Floors', result.data)
-      setAllFloorNames(result.data.map((val) => String(val.location)))
-    })
-  }, [])
-
   const changeFloor = (requestedFloor: string) => {
     console.log('Fetching', requestedFloor)
 
@@ -321,6 +314,18 @@ const VirtualTour: React.FC = () => {
         console.error('Floor could not be found: ' + reason.toString())
       )
   }
+
+  useEffect(() => {
+    // RUN ON FIRST LOAD
+    axios.get<{ location: string }[]>(API_PREFIX + '/floors').then((result) => {
+      console.log('Floors', result.data)
+      setAllFloorNames(result.data.map((val) => String(val.location)))
+    })
+
+    if (currentId == '-1' || (params.has('id') && params.get('id') != '-1')) {
+      changeFloor('G.G')
+    }
+  }, [])
 
   useEffect(() => {
     document.title = locationGroup
@@ -392,11 +397,14 @@ const VirtualTour: React.FC = () => {
     <>
       <div
         style={{
-          background: '#10101001',
+          background: '#101010F0',
           position: 'fixed',
           left: 0,
           bottom: 0,
           zIndex: 999,
+          fontSize: '3rem',
+          padding: '5px',
+          borderRadius: '10px',
         }}
       >
         Location: {currentPoint.location}
