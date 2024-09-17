@@ -386,7 +386,7 @@ const VirtualTour: React.FC = () => {
         highlightedPath.slice(highlightedPath.indexOf(Number(currentId)))
       )
     }
-  }, [currentId, highlightedPath])
+  }, [currentId])
 
   return (
     <>
@@ -412,15 +412,29 @@ const VirtualTour: React.FC = () => {
       )}
       {SHOW_NAV_SEARCH && allFloorNames.length > 0 && (
         <>
-        <SearchBar
-          data={allFloorNames}
-          highlightCallback={calculateHighlightedPath}
-          jumpToCallback={changeFloor}
-        />
-        <button style={{top: 0, right: 0, position: 'fixed', zIndex: 999, background: "#4d4c4c", color: "white"}}/>
+          <SearchBar
+            data={allFloorNames}
+            highlightCallback={calculateHighlightedPath}
+            jumpToCallback={changeFloor}
+          />
+          {highlightedPath.length > 0 && (
+            <button
+              style={{
+                top: 0,
+                right: 0,
+                position: 'fixed',
+                zIndex: 999,
+                background: '#4d4c4c',
+                color: 'white',
+              }}
+              onClick={() => setHighlightedPath([])}
+            >
+              Clear Highlight
+            </button>
+          )}
         </>
       )}
-      
+
       <div style={{ width: '100vw', height: '100vh' }}>
         <Canvas camera={{ position: [0, 0, 10], fov: 75 }} shadows>
           <ambientLight intensity={0.6} />
