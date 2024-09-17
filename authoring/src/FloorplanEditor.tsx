@@ -11,6 +11,7 @@ interface Node {
   x: number
   y: number
   type: number
+  label: string
 }
 
 interface Edge {
@@ -52,6 +53,7 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
           y: number
           keyframe_id: number
           type: number
+          label: string
         }>
       }>(`${API_PREFIX}/api/floorplans/${floorplan}`)
       console.log(response.data)

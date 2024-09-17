@@ -10,6 +10,25 @@
   align-items: center;
 }
 
+.go-button {
+  margin-top: 3px;
+  background-color: green;
+}
+.go-button:disabled {
+  background-color: rgb(90, 86, 86);
+}
+
+.floor-list-container-nav {
+  margin-left: 5px;
+  margin-bottom: 5px;
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 999;
+  flex-direction: column;
+  display: flex;
+  align-items: center;
+}
 
 .floor-list {
   color: white;
@@ -34,8 +53,15 @@
   border-bottom: 1px solid #ccc;
 }
 
+.selected {
+  background-color: rgba(200, 200, 200, 0.5);
+}
+.selected:hover {
+  background-color: rgba(120, 120, 120, 0.3) !important;
+}
+
 .floor-list li:hover {
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: rgba(100, 100, 100, 0.1);
 }
 
 .drawer-toggle {

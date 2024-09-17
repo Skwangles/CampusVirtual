@@ -2,7 +2,8 @@
 // import { Canvas } from '@react-three/fiber';
 // import * as THREE from 'three';
 // import RotationController from './RotationController'
-// @ts-ignore - required for Types/
+
+//@ts-expect-error - React is just used for types
 import React, { useState } from 'react'
 import { API_PREFIX } from './consts'
 import axios from 'axios'
@@ -13,13 +14,22 @@ const PointControls = ({
   reloadPoints,
 }: {
   id: string | undefined
-  point: { id: string; x: number; y: number; type: number } | null
+  point: {
+    id: string
+    x: number
+    y: number
+    type: number
+    label: string
+  } | null
   reloadPoints: any
 }) => {
+  const [connectId, setConnectId] = useState<string>('')
+  const [label, setLabel] = useState<string | null>(point?.label ?? '')
+  const [disconnectId, setDisconnectId] = useState<string>('')
+
   if (!id || !point) return <></>
 
-  const [connectId, setConnectId] = useState<string>('')
-  const [disconnectId, setDisconnectId] = useState<string>('')
+  console.log('Point Info', point)
 
   return (
     <div
@@ -40,7 +50,41 @@ const PointControls = ({
         <li>Y: {point.y * 100}%</li>
         <li>Type: {point.type}</li>
       </ul>
+
+      <div>
+        Edit point label - This can be used to set the jump point for a floor,
+        e.g. G.1 to be the default G.1 location
+        <button
+          style={{ margin: '5px' }}
+          onClick={async () => {
+            const result = await axios.post(
+              `${API_PREFIX}/api/point/${id}/label`,
+              { label: label }
+            )
+            if (result.status == 201) {
+              window.alert(`Successfully updated label: ${label}`)
+              reloadPoints()
+            } else if (result.status == 409) {
+              window.alert(`Could update label! [${result.statusText}]`)
+            } else {
+              window.alert(`Unknown error: ${result.statusText}`)
+            }
+          }}
+        >
+          Edit Label
+        </button>
+        <input
+          type="text"
+          id="edit-point-label"
+          value={label ?? ''}
+          placeholder="e.g. G.1"
+          onChange={(e) => {
+            setLabel(e.target.value)
+          }}
+        />
+      </div>
       <img width={400} height={200} src={`${API_PREFIX}/api/image/${id}`} />
+
       <button
         style={{ margin: '5px' }}
         onClick={async () => {

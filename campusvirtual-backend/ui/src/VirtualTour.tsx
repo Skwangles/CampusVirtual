@@ -1,26 +1,28 @@
 import React, { useEffect, useState } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
-// import { OrbitControls } from '@react-three/drei';
 import {
-  API_PREFIX,
-  showList,
-  showMap,
-  COORDS_TO_METRES,
-  addQuotationMarks,
-  PROJECT_NAME,
+  HOTSPOT_COLOUR,
+  HOTSPOT_HIGHLIGHTED,
+  HOTSPOT_OUTLINE,
+  SHOW_NAV_SEARCH,
 } from './consts'
+// import { OrbitControls } from '@react-three/drei';
+import { API_PREFIX, showMap, COORDS_TO_METRES, PROJECT_NAME } from './consts'
 import * as THREE from 'three'
 import axios from 'axios'
 import CameraRotationControls from './RotationController'
 import StatsForNerds from './StatsForNerds'
 import Map from './Map'
-import FloorList from './FloorList'
+import SearchBar from './SearchBar'
+import { toast, ToastContainer, Bounce } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.min.css'
 
 interface HotspotProps {
   position: [number, number, number]
   rotation: [number, number, number]
   image_identifier: string
   onClick: () => void
+  isHighlighted: boolean
 }
 
 interface HotspotObj {
@@ -49,15 +51,11 @@ const Hotspot: React.FC<HotspotProps> = ({
   onClick,
   rotation,
   image_identifier,
+  isHighlighted,
 }) => {
   const sphereSize = 20 / COORDS_TO_METRES
   const outlineSize = sphereSize * 1.09
   const dropHotspotsBelowEyeLevelOffset = 8 / COORDS_TO_METRES
-  // const [texture, setTexture] = useState(new THREE.Texture())
-
-  // useEffect(() => {
-  //   setTexture(new THREE.TextureLoader().load(`${API_PREFIX}/image/thumbnail/${image_identifier}`));
-  // }, [image_identifier])
 
   position[1] -= COORDS_TO_METRES * dropHotspotsBelowEyeLevelOffset
   return (
@@ -69,12 +67,14 @@ const Hotspot: React.FC<HotspotProps> = ({
         receiveShadow
       >
         <sphereGeometry args={[sphereSize, 20, 20]} />
-        <meshStandardMaterial color={'#E1251B'} />
+        <meshStandardMaterial
+          color={isHighlighted ? HOTSPOT_HIGHLIGHTED : HOTSPOT_COLOUR}
+        />
       </mesh>
       ;
       <mesh position={position} rotation={rotation} onClick={onClick}>
         <sphereGeometry args={[outlineSize, 20, 20]} />
-        <meshBasicMaterial color={'#FFFFFF'} side={THREE.BackSide} />
+        <meshBasicMaterial color={HOTSPOT_OUTLINE} side={THREE.BackSide} />
       </mesh>
     </>
   )
@@ -86,6 +86,7 @@ interface SphereWithHotspotsProps {
   hotspots: HotspotObj[]
   onHotspotClick: (hotspot: HotspotObj) => void
   rotation: [number, number, number]
+  highlightedOrbs: number[]
 }
 
 const SphereWithHotspots: React.FC<SphereWithHotspotsProps> = ({
@@ -94,6 +95,7 @@ const SphereWithHotspots: React.FC<SphereWithHotspotsProps> = ({
   hotspots,
   onHotspotClick,
   rotation,
+  highlightedOrbs,
 }) => {
   const [currentTexture, setCurrentTexture] = useState(new THREE.Texture())
 
@@ -138,6 +140,7 @@ const SphereWithHotspots: React.FC<SphereWithHotspotsProps> = ({
           rotation={hotspot.rotation}
           image_identifier={Number(hotspot.ts).toFixed(5)}
           onClick={() => onHotspotClick(hotspot)}
+          isHighlighted={highlightedOrbs.includes(Number(hotspot.id))}
         />
       ))}
     </group>
@@ -184,6 +187,7 @@ const VirtualTourContent: React.FC<any> = ({
   neighbours,
   setNeighbours,
   isRefined,
+  highlightedPath,
 }) => {
   const [hotspots, setHotspots] = useState<HotspotObj[]>([])
   const [currentImage, setCurrentImage] = useState<string | null>(null)
@@ -193,10 +197,6 @@ const VirtualTourContent: React.FC<any> = ({
   const [rotation, setRotation] = useState<[number, number, number]>([0, 0, 0])
 
   const { camera } = useThree()
-
-  useEffect(() => {
-    fetchPointData(currentId)
-  }, [currentId])
 
   const fetchPointData = async (pointId: string) => {
     try {
@@ -243,6 +243,10 @@ const VirtualTourContent: React.FC<any> = ({
     }
   }
 
+  useEffect(() => {
+    fetchPointData(currentId)
+  }, [currentId])
+
   const handleHotspotClick = (hotspot: HotspotObj) => {
     setCurrentId(hotspot.id)
   }
@@ -254,6 +258,7 @@ const VirtualTourContent: React.FC<any> = ({
       hotspots={hotspots}
       onHotspotClick={handleHotspotClick}
       rotation={rotation}
+      highlightedOrbs={highlightedPath}
     />
   ) : (
     <></>
@@ -261,13 +266,12 @@ const VirtualTourContent: React.FC<any> = ({
 }
 
 const VirtualTour: React.FC = () => {
-  const defaultInitId = '272'
   let params = new URLSearchParams(window.location.search)
   const [currentId, setCurrentId] = useState<string>(() => {
     if (params.has('id')) {
-      return params.get('id') ?? defaultInitId
+      return params.get('id')!
     }
-    return defaultInitId
+    return '-1'
   })
   const [currentPoint, setCurrentPoint] = useState<PointData>({
     pose: [],
@@ -277,8 +281,7 @@ const VirtualTour: React.FC = () => {
   })
   const [floorWideNeighbours, setFloorWideNeighbours] = useState<any[]>([])
   const [locationGroup, setLocationGroup] = useState<string>('')
-  const [isRefined, setIsRefined] = useState<boolean>(true)
-  const [manualFloorSelected, setManualFloorSelect] = useState<string>('')
+  const [highlightedPath, setHighlightedPath] = useState<number[]>([])
 
   const [allFloorNames, setAllFloorNames] = useState<string[]>([])
 
@@ -300,14 +303,7 @@ const VirtualTour: React.FC = () => {
     })
   }, [])
 
-  useEffect(() => {
-    console.log('Manual Floor Selected', manualFloorSelected)
-    if (manualFloorSelected == '') return
-    let requestedFloor = manualFloorSelected
-    if (addQuotationMarks) {
-      requestedFloor = '"' + manualFloorSelected + '"'
-    }
-
+  const changeFloor = (requestedFloor: string) => {
     console.log('Fetching', requestedFloor)
 
     axios
@@ -324,7 +320,7 @@ const VirtualTour: React.FC = () => {
       .catch((reason) =>
         console.error('Floor could not be found: ' + reason.toString())
       )
-  }, [manualFloorSelected])
+  }
 
   useEffect(() => {
     document.title = locationGroup
@@ -361,36 +357,70 @@ const VirtualTour: React.FC = () => {
     }
   }
 
+  const calculateHighlightedPath = async (selectedLocation: string) => {
+    try {
+      const response = await axios.get(
+        `/point/${currentId}/path/${selectedLocation}`
+      )
+      console.log('API Response:', response.data)
+      if (!response.data || !response.data.path) {
+        toast.error('Something went wrong calculating a path!')
+      } else {
+        setHighlightedPath(response.data?.path)
+        toast.success(
+          `Path to Floor: ${selectedLocation} is now highlighted, follow the blue dots...`
+        )
+      }
+    } catch (error) {
+      console.error('API Error:', error)
+      toast.error('Something went wrong fetching the path, try again later!')
+    }
+  }
+
+  useEffect(() => {
+    if (
+      highlightedPath.length > 0 &&
+      highlightedPath.includes(Number(currentId))
+    ) {
+      setHighlightedPath(
+        highlightedPath.slice(highlightedPath.indexOf(Number(currentId)))
+      )
+    }
+  }, [currentId, highlightedPath])
+
   return (
     <>
-      <StatsForNerds point={currentPoint} />
-      <div style={{ position: 'fixed', top: 0, right: 0, zIndex: 9 }}>
-        {' '}
-        Show Pruned:{' '}
-        <input
-          id="isrefined_chkbx"
-          type="checkbox"
-          checked={isRefined}
-          onChange={(event) => {
-            const checkbox = document.getElementById('isrefined_chkbx')
-            //@ts-ignore
-            setIsRefined(checkbox.checked)
-          }}
-        />
+      <div
+        style={{
+          background: '#10101001',
+          position: 'fixed',
+          left: 0,
+          bottom: 0,
+          zIndex: 999,
+        }}
+      >
+        Location: {currentPoint.location}
       </div>
+      <StatsForNerds point={currentPoint} />
       {showMap && (
         <Map
           floorName={locationGroup}
           setID={setCurrentId}
           currentId={currentId}
+          highlightedPath={highlightedPath}
         />
       )}
-      {showList && allFloorNames.length > 0 && (
-        <FloorList
-          floors={allFloorNames}
-          setManualFloorSelect={setManualFloorSelect}
+      {SHOW_NAV_SEARCH && allFloorNames.length > 0 && (
+        <>
+        <SearchBar
+          data={allFloorNames}
+          highlightCallback={calculateHighlightedPath}
+          jumpToCallback={changeFloor}
         />
+        <button style={{top: 0, right: 0, position: 'fixed', zIndex: 999, background: "#4d4c4c", color: "white"}}/>
+        </>
       )}
+      
       <div style={{ width: '100vw', height: '100vh' }}>
         <Canvas camera={{ position: [0, 0, 10], fov: 75 }} shadows>
           <ambientLight intensity={0.6} />
@@ -406,10 +436,24 @@ const VirtualTour: React.FC = () => {
             setCurrentPoint={setCurrentPoint}
             setNeighbours={setFloorWideNeighbours}
             neighbours={floorWideNeighbours}
-            isRefined={isRefined}
+            isRefined={true}
+            highlightedPath={highlightedPath}
           />
         </Canvas>
       </div>
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+        transition={Bounce}
+      />
     </>
   )
 }

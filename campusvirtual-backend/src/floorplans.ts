@@ -74,6 +74,18 @@ if (ENABLE_AUTHORING_PAGE) {
 
   });
 
+
+  app.post('/api/point/:id/label', async function (req, res) {
+    let label = String(req.body.label)
+    const id = Number(req.params.id)
+    if (isNaN(id)) {
+      res.status(400).send("ID must be valid!").end()
+      return;
+    }
+    label = label.replace("<", "\<").replace(">", "\>"); // THIS AREA MAY BE VULNERABLE TO XSS - Only if the attacker gets ahold of the authoring panel, please disable it in consts once you are done authoring
+    db.query("UPDATE refined_nodes SET label = $1 WHERE keyframe_id = $2", [label, id])
+  })
+
   app.delete('/api/point/:id/delete', async (req: Request, res: Response) => {
     const { id } = req.params;
 
@@ -136,7 +148,7 @@ app.get('/api/floorplans/:name', async (req: Request, res: Response) => {
   const { name } = req.params;
 
   // Includes keyframes bordering the floor (add 'AND type < 50' to exclude)
-  const pointResult = await db.query("SELECT keyframe_id, x, y, type FROM floorplan_points WHERE location = $1", [name]);
+  const pointResult = await db.query("SELECT f.keyframe_id, x, y, type, n.label FROM floorplan_points f JOIN refined_nodes n ON n.keyframe_id = f.keyframe_id WHERE location = $1", [name]);
   const image = await db.query("SELECT path FROM floorplan_images WHERE location = $1 LIMIT 1;", [name])
 
   const edges = await db.query(`SELECT  e.keyframe_id0, e.keyframe_id1 FROM refined_edges e JOIN floorplan_points f ON e.keyframe_id0 = f.keyframe_id JOIN floorplan_points f2 ON e.keyframe_id1 = f2.keyframe_id WHERE f.location = $1 AND f2.location = $1`, [name])

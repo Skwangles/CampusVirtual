@@ -1,0 +1,56 @@
+.go-button {
+  margin-top: 5px;
+  margin-left: 5px;
+  background-color: rgb(0, 128, 0);
+  color: black;
+}
+
+.go-button:disabled {
+  background-color: rgba(0, 128, 0, 0.3);
+  color: rgba(0, 0, 0, 0.3);
+}
+
+.go-button:hover:enabled {
+  background-color: rgb(0, 148, 0);
+}
+
+.search-bar {
+  position: fixed;
+  left: 40%;
+  top: 0%;
+  z-index: 999;
+}
+
+.search-bar input {
+  padding: 10px;
+  font-size: 16px;
+  width: 300px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.suggestions-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  max-height: 150px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+  z-index: 1000;
+}
+
+.suggestions-list li {
+  padding: 10px;
+  cursor: pointer;
+}
+
+.suggestions-list li:hover {
+  background: rgba(0, 0, 0, 0.3);
+}

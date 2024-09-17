@@ -9,6 +9,7 @@ import db from './db'
 import { processImage } from './images'
 import floorplanAPI from './floorplans'
 import { stripDirectoryTraversal } from './utils'
+import { aStarPathfinding } from './pathfinding'
 
 
 const app = express()
@@ -21,6 +22,24 @@ app.get('/', function (req, res) {
   res.sendFile(path.join(__dirname, '../ui/dist', 'index.html'))
 })
 
+app.get('/point/:id/path/:location', async function (req, res) {
+  const point = Number(req.params.id)
+  const locationCode = String(req.params.location)
+  console.log(locationCode)
+
+  // Check label first, as these are manually annotated (and supposedly special) points
+  let locationResults = await db.query("SELECT n.keyframe_id FROM refined_nodes n WHERE n.label = $1 LIMIT 1;", [locationCode]);
+  if (locationResults.rowCount == 0) {
+    const firstPointWithLocation = (await db.query("SELECT n.keyframe_id FROM refined_nodes n JOIN refined_node_locations nl ON n.keyframe_id = nl.keyframe_id WHERE nl.location = $1 LIMIT 1;", [locationCode]));
+    if (firstPointWithLocation.rowCount === 0) {
+      res.status(400).send("End location could not be found");
+      return
+    }
+    locationResults = firstPointWithLocation
+  }
+
+  res.json({ path: await aStarPathfinding(db, point, locationResults.rows[0].keyframe_id) ?? [] })
+});
 
 app.get('/point/:id/neighbours/:is_refined/:distance_thresh_m/:y_dist_thresh_m', async function (req, res) {
   const is_refined = Boolean(req.params.is_refined === 'true');
@@ -48,11 +67,13 @@ app.get('/point/:id/neighbours/:is_refined/:distance_thresh_m/:y_dist_thresh_m',
 })
 
 
+
+
 app.get('/point/:id/:is_refined', async function (req: { params: { id: number, is_refined: string } }, res: { json: (arg0: any) => void }) {
 
   const is_refined = Boolean(req.params.is_refined == 'true');
   const rows = await db.query(`
-    SELECT n.keyframe_id, n.ts, n.pose, l.location
+    SELECT n.keyframe_id, n.ts, n.pose, l.location, n.label
     FROM ${is_refined ? "refined_" : ""}nodes n
     LEFT JOIN ${is_refined ? "refined_" : ""}node_locations l ON n.keyframe_id = l.keyframe_id
     WHERE n.keyframe_id = $1;
@@ -62,7 +83,8 @@ app.get('/point/:id/:is_refined', async function (req: { params: { id: number, i
 })
 
 app.get('/floors', async function (req: any, res: any) {
-  res.json((await db.query("SELECT DISTINCT location FROM refined_node_locations")).rows)
+  res.json((await db.query("SELECT DISTINCT location FROM refined_node_locations UNION SELECT DISTINCT label FROM refined_nodes WHERE label is not NULL AND label <> '';")).rows)
+  // Some labels and floor names may be vulnerable to XSS
 })
 
 
@@ -76,7 +98,7 @@ app.get('/floor/:floor/point/', async function (req: any, res: any) {
     res.json(nodeWithSpecialLabel.rows[0])
     return;
   }
-  const firstNodeWithLocation = await db.query("SELECT n.keyframe_id FROM refined_nodes n JOIN refined_node_locations l ON n.keyframe_id = l.keyframe_id WHERE l.location = $1 LIMIT 1", [req.params.floor])
+  const firstNodeWithLocation = await db.query("SELECT n.keyframe_id, l.location, n.label FROM refined_nodes n JOIN refined_node_locations l ON n.keyframe_id = l.keyframe_id WHERE l.location = $1 LIMIT 1", [req.params.floor])
   if (firstNodeWithLocation.rows.length > 0) {
     console.log("Returning rows")
     res.json(firstNodeWithLocation.rows[0])
@@ -91,7 +113,7 @@ app.get('/floorplan/:id/:is_refined', async function (req: any, res: any) {
   const id = Number(req.params.id);
   const is_refined = Boolean(req.params.is_refined);
   const rows = await db.query(`
-			SELECT n.keyframe_id, n.ts, n.pose
+			SELECT n.keyframe_id, n.ts, n.pose, n.label
 			FROM ${is_refined ? "refined_" : ""}nodes n 
 			JOIN ${is_refined ? "refined_" : ""}node_locations l ON l.name = n.location
 			WHERE l.location = 
