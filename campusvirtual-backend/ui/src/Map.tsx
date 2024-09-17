@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Stage, Image as KonvaImage, Line, Circle, Layer } from 'react-konva'
-import { API_PREFIX, MAX_MAP_HEIGHT_PERCENT } from './consts'
+import { API_PREFIX, HIDE_EDGES, MAX_MAP_HEIGHT_PERCENT } from './consts'
 import './Map.css'
 import useImage from 'use-image'
 import axios from 'axios'
@@ -129,7 +129,9 @@ const Map: React.FC<MinimapProps> = ({
                   {edges.map((edge, index) => {
                     const { x: x1, y: y1 } = getNodeCoords(edge.id0)
                     const { x: x2, y: y2 } = getNodeCoords(edge.id1)
-
+                    if (HIDE_EDGES) {
+                      return <></>
+                    }
                     return (
                       <Line
                         key={index}
