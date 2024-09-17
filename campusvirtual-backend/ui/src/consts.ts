@@ -1,4 +1,4 @@
-export const API_PREFIX = "http://localhost:3001"
+export const API_PREFIX = ""
 
 export const COORDS_TO_METRES = 40
 export const showMap = true;
