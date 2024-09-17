@@ -21,12 +21,12 @@
   margin-bottom: 5px;
 }
 
-
 .stats {
-  background: rgba(0, 0, 0, 0.8); /* Transparent gray background */
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
   padding: 10px;
   border-radius: 4px;
-  max-height: 200px;
+  max-height: 50vh;
   overflow-y: auto;
   z-index: 1000;
 }
