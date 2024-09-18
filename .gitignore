@@ -8,3 +8,6 @@ MEDIA/
 pictures/*.png
 __generated__/
 node_modules/
+
+runCampusVirtual
+runProcessJsonFiles
