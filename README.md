@@ -1,4 +1,4 @@
-#[CampusVirtual](logo/campusvirtual.png)
+![CampusVirtual](logo/campusvirtual.png)
 
 ## Installing
 
