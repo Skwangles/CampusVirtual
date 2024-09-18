@@ -1,0 +1,30 @@
+{
+  "name": "socket-viewer",
+  "version": "0.0.1",
+  "description": "A cross-platform keyframe/landmark/graph viewer",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stella-cv/stella_vslam.git"
+  },
+  "license": "BSD-2-Clause",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "pg": "^8.12.0",
+    "pg-pool": "^3.6.2",
+    "socket.io": "^2.0.4",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "ejs": "^2.5.7"
+  },
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "bugs": {
+    "url": "https://github.com/stella-cv/stella_vslam/issues"
+  },
+  "homepage": "https://github.com/stella-cv/stella_vslam#readme"
+}

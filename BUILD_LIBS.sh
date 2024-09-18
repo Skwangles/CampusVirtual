@@ -149,16 +149,6 @@ cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 make -j
 sudo make install
 
-# YOUR WORKING DIRECTORY
-cd /home/skwangles/Documents/Honours/CampusVirtual/
-
-# Installs MediaSDKTest tool for stitching videos
-sudo dpkg -i CampusVirtual-FileProcessing/libMediaSDK-dev_2.0-3_amd64_ubuntu18.04.deb
-
-cd PgSocketViewer && sudo npm install && cd ..
-
-sudo ldconfig # update lookup library paths again - IMPORTANT if 'libxx.so' not found.
-
-# IF G2O gives a QT error - sudo apt install -y qtcreator qtbase5-dev qt5-qmake cmake
+sudo ldconfig
 
 echo "IF YOU RAN 'sudo ./BUILD_LIBS.sh' - you will need to run 'sudo chown' the /tmp/g2o, /tmp/iridescence, /tmp/backward-cpp, and /tmp/socket.io-client-cpp and /tmp/FBoW folders to fix their access for CampusVirtual"

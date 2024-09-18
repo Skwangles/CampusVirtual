@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>SocketViewer</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.124.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.124.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="text/javascript" src="js/lib/dat.gui.min.js"></script>
+    <script type="text/javascript" src="js/lib/stats.min.js"></script>
+    <script type="module" src="js/PointCloud.js"></script>
+    <script type="module" src="js/CameraFrames.js"></script>
+
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+
+      #thumb {
+        position: absolute;
+        top: 0px;
+        left: 80px;
+        background-color: #000;
+      }
+    </style>
+  </head>
+
+  <body>
+    <canvas id="thumb" height="300" width="600"></canvas>
+    <div id="Stats-output"></div>
+    <div id="WebGL-output"></div>
+    <script type="module" src="js/main.js"></script>
+    <script type="module">
+      import { CANVAS_SIZE } from './js/consts.js'
+      import {
+        init,
+        onResize
+      } from './js/main.js'
+
+      let ctx = document.getElementById('thumb').getContext('2d')
+     
+      // load main function
+      window.onload = init
+    </script>
+  </body>
+</html>

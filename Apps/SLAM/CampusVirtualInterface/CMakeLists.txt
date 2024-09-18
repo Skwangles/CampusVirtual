@@ -32,10 +32,10 @@ endif()
 
 # ----- Show dialog -----
 
-find_package(pangolin_viewer QUIET)
-if(pangolin_viewer_FOUND)
-    message(STATUS "Viewer for examples: PangolinViewer")
-endif()
+# find_package(pangolin_viewer QUIET) # THIS IS COMMENTED OUT BECAUSE IT DIDN'T SUPPORT THE UBUNUT NOBLE NOMBA's VERSION OF lib-yaml (v8)
+# if(pangolin_viewer_FOUND)
+#     message(STATUS "Viewer for examples: PangolinViewer")
+# endif()
 find_package(campus_virtual_socket_publisher REQUIRED)
 if(campus_virtual_socket_publisher_FOUND)
     message(STATUS "Viewer for Campus Virtual: SocketPublisher")
