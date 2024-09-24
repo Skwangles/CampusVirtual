@@ -6,6 +6,7 @@ export async function searchNeighbour(is_refined: boolean, mainPointId: number, 
   // Used BFS to find all points down the graph within a range
   const minDepth = 1; // case for when point distances are too large to give decent # of options
   const maxDepth = 5;
+  const usePhysicalProximity = true;
 
   const getDistance = (x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) => {
     return [Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(z2 - z1, 2)), Math.abs(y2 - y1)];
@@ -21,6 +22,36 @@ export async function searchNeighbour(is_refined: boolean, mainPointId: number, 
   const output = []
 
   visited.add(mainPointId);
+
+  if (usePhysicalProximity) {
+    const resultData = await db.query(`WITH target_point AS (
+    SELECT 
+        x_trans, 
+        y_trans, 
+        z_trans
+    FROM ${is_refined ? "refined_" : ""}nodes
+    WHERE keyframe_id = $1
+    )
+    SELECT 
+        keyframe_id
+    FROM ${is_refined ? "refined_" : ""}nodes rn
+    JOIN target_point ON (
+            abs(rn.y_trans - target_point.y_trans) <= $3 
+          AND
+            POWER(rn.x_trans - target_point.x_trans, 2) +
+            POWER(rn.z_trans - target_point.z_trans, 2)
+         <= $2
+    )
+    WHERE rn.keyframe_id != $1;`, [mainPointId, Math.pow(distanceThreshold / COORDS_TO_METRES, 2), yDistThresh / (COORDS_TO_METRES * 2)])
+    console.log("Phsyical proximity: ", resultData.rows)
+    for (const row of resultData.rows) {
+      const id: number = Number(row["keyframe_id"])
+      output.push((await db.query(`SELECT keyframe_id, x_trans, y_trans, z_trans, ts, pose FROM ${is_refined ? "refined_" : ""}nodes WHERE keyframe_id = $1`, [id])).rows[0])
+      result.add(id)
+      queue.push({ keyframe_id: id, depth: 1 })
+    }
+
+  }
 
   while (queue.length > 0) {
     const { keyframe_id, depth } = queue.shift()!;
