@@ -6,10 +6,113 @@ import {
   Y_DIST_THRESHOLD,
   KEYFRAME_IMG_DIR,
   KEYFRAME_IMG_EXTENSION,
+  OUTDOORS_LOCATION_NAME,
+  OUTDOORS_TARGET_CLOSENESS,
+  OUTDOORS_ALWAYS_MERGE_CLOSENESS,
+  OUTDOORS_Y_DIST_THRESHOLD,
 } from "./consts";
-import { calculateImageSharpness, calculateXZDistance, getNeighbours, getNextKeyframe, getNodePosition, replaceNode } from './utils'
+import { calculateImageSharpness, calculateXZDistance, convertTimestampToImagename, getNeighbours, getNextKeyframe, getNodePosition, isNodeOutdoors, replaceNode } from './utils'
 
 // TODO: Look at  'A New Trajectory Reduction Method for Mobile Devices Operating Both Online and Offline' paper
+
+async function useEnumerateGreedyTripleRingStrategy(
+  db: any,
+  image_directory = KEYFRAME_IMG_DIR,
+) {
+  const startTime = new Date().getTime();
+  const firstFrame = await getNextKeyframe(db, -1);
+  if (!firstFrame) {
+    throw new Error("Could not find the first frame!");
+  }
+
+  let currentKeyframeId = Number(firstFrame.keyframe_id);
+  let currentTs = Number(firstFrame.ts);
+
+  console.log("First keyframe ID", currentKeyframeId);
+
+  // Loop through every node
+  while (!isNaN(currentKeyframeId)) {
+
+    let currentPosition = await getNodePosition(db, currentKeyframeId);
+    const isOutdoors = await isNodeOutdoors(db, currentKeyframeId)
+    let is_current_deleted = false;
+    console.log("Current:", currentKeyframeId);
+
+    const checkedNeighbours = new Set();
+    let neighboursHaveChanged = true;
+    while (neighboursHaveChanged && !is_current_deleted) {
+      const neighbours = await getNeighbours(db, currentKeyframeId);
+      neighboursHaveChanged = false;
+
+      for (const neighbour of neighbours) {
+        const neighbourId = Number(neighbour.keyframe_id);
+        if (currentKeyframeId == neighbourId) continue
+
+        if (checkedNeighbours.has(neighbourId)) continue;
+        checkedNeighbours.add(neighbourId); // Not using 'visited' here, because we want the 'current' to delete a previous node if it was found sharper
+
+        const ts = neighbour.ts;
+        const neighbourPosition = await getNodePosition(db, neighbourId);
+        const distance = calculateXZDistance(
+          currentPosition,
+          neighbourPosition
+        );
+
+        const yDistance = Math.abs(neighbourPosition[1] - currentPosition[1]);
+
+        if (yDistance > (isOutdoors ? OUTDOORS_Y_DIST_THRESHOLD : Y_DIST_THRESHOLD)) {
+          continue;
+        }
+
+        if (distance < (isOutdoors ? OUTDOORS_TARGET_CLOSENESS : TARGET_CLOSENESS) || distance < (isOutdoors ? OUTDOORS_ALWAYS_MERGE_CLOSENESS : ALWAYS_MERGE_CLOSENESS)) {
+
+          const currentSharpness =
+            (await calculateImageSharpness(
+              `${image_directory}${convertTimestampToImagename(currentTs)}`
+            )) ?? 0;
+          const neighbourSharpness =
+            (await calculateImageSharpness(
+              `${image_directory}${convertTimestampToImagename(ts)}`
+            )) ?? 0;
+
+          if (neighbourSharpness <= currentSharpness) {
+            console.log(
+              "Deleting neighbour",
+              neighbourId,
+              "with sharpness",
+              neighbourSharpness
+            );
+
+
+            if (await replaceNode(db, neighbourId, neighbourPosition, distance <= (isOutdoors ? OUTDOORS_ALWAYS_MERGE_CLOSENESS : ALWAYS_MERGE_CLOSENESS), isOutdoors)) {
+              neighboursHaveChanged = true;
+            }
+          } else {
+            if (is_current_deleted) continue;
+            is_current_deleted = true;
+          }
+        }
+      }
+    }
+    if (is_current_deleted) {
+      console.log("Deleteing current node:", currentKeyframeId)
+      await replaceNode(db, currentKeyframeId, currentPosition, false, isOutdoors);
+    }
+    try {
+
+      const nextKeyframeData = await getNextKeyframe(db, currentKeyframeId)
+      if (!nextKeyframeData) break;
+      currentKeyframeId = Number(nextKeyframeData.keyframe_id ?? NaN)
+      currentTs = Number(nextKeyframeData.ts)
+    }
+    catch (e) {
+      console.debug("Error getting next keyframe:", e)
+      break;
+    }
+  }
+  console.log("Finished in: ", new Date().getTime() - startTime)
+}
+
 
 /**
  * Loop through each node, if a node is within 5m keep the least blurry
@@ -20,6 +123,8 @@ async function useGreedyTripleRingStrategy(
   image_directory = KEYFRAME_IMG_DIR,
   extension = KEYFRAME_IMG_EXTENSION
 ) {
+
+  const startTime = new Date().getTime()
 
   const firstFrame = await getNextKeyframe(db, -1);
   if (!firstFrame) {
@@ -45,24 +150,15 @@ async function useGreedyTripleRingStrategy(
     visited.add(currentKeyframeId);
 
     let currentPosition = await getNodePosition(db, currentKeyframeId);
+    const isOutdoors = await isNodeOutdoors(db, currentKeyframeId)
     let is_current_deleted = false;
     console.log("Current:", currentKeyframeId);
 
     const checkedNeighbours = new Set();
     let neighboursHaveChanged = true;
     while (neighboursHaveChanged && !is_current_deleted) {
-      const neighbours = await getNeighbours(db, currentKeyframeId);
+      const neighbours = await getNeighbours(db, currentKeyframeId, false);
       neighboursHaveChanged = false;
-
-      // Ignore single end nodes to avoid the small 1 depth leaves on an otherwise long stretch
-      if (neighbours.length == 1) { // Will need to START from NOT an end node (e.g. id 2)
-        const firstNeighbourId = Number(neighbours[0]!.keyframe_id)
-        addToStack(firstNeighbourId)
-
-        console.log("Removing self: ", currentKeyframeId)
-        await replaceNode(db, currentKeyframeId, currentPosition)
-        continue;
-      }
 
       for (const neighbour of neighbours) {
         const neighbourId = Number(neighbour.keyframe_id);
@@ -82,19 +178,19 @@ async function useGreedyTripleRingStrategy(
 
         const yDistance = Math.abs(neighbourPosition[1] - currentPosition[1]);
 
-        if (yDistance > Y_DIST_THRESHOLD) {
+        if (yDistance > (isOutdoors ? OUTDOORS_Y_DIST_THRESHOLD : Y_DIST_THRESHOLD)) {
           continue;
         }
 
-        if (distance < TARGET_CLOSENESS || distance < ALWAYS_MERGE_CLOSENESS) {
+        if (distance < (isOutdoors ? OUTDOORS_TARGET_CLOSENESS : TARGET_CLOSENESS) || distance < (isOutdoors ? OUTDOORS_ALWAYS_MERGE_CLOSENESS : ALWAYS_MERGE_CLOSENESS)) {
 
           const currentSharpness =
             (await calculateImageSharpness(
-              `${image_directory}${Number(currentTs).toFixed(5)}${extension}`
+              `${image_directory}${convertTimestampToImagename(currentTs)}`
             )) ?? 0;
           const neighbourSharpness =
             (await calculateImageSharpness(
-              `${image_directory}${Number(ts).toFixed(5)}${extension}`
+              `${image_directory}${convertTimestampToImagename(ts)}`
             )) ?? 0;
 
           if (neighbourSharpness <= currentSharpness) {
@@ -106,7 +202,7 @@ async function useGreedyTripleRingStrategy(
             );
 
 
-            if (await replaceNode(db, neighbourId, neighbourPosition, distance <= ALWAYS_MERGE_CLOSENESS)) {
+            if (await replaceNode(db, neighbourId, neighbourPosition, distance <= (isOutdoors ? OUTDOORS_ALWAYS_MERGE_CLOSENESS : ALWAYS_MERGE_CLOSENESS), isOutdoors)) {
               neighboursHaveChanged = true;
               visited.add(neighbourId); // Its been deleted, so don't try visit it
             }
@@ -123,9 +219,10 @@ async function useGreedyTripleRingStrategy(
         if (!checkedNeighbours.has(neighbour.keyframe_id)) addToStack(neighbour.keyframe_id)
       }
       console.log("Deleteing current node:", currentKeyframeId)
-      await replaceNode(db, currentKeyframeId, currentPosition);
+      await replaceNode(db, currentKeyframeId, currentPosition, false, isOutdoors);
     }
   }
+  console.log("Finished in:", new Date().getTime() - startTime)
 }
 
 

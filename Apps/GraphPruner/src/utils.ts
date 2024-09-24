@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { COORDS_TO_METRES, TARGET_CLOSENESS, Y_DIST_THRESHOLD } from "./consts";
+import { COORDS_TO_METRES, KEYFRAME_IMG_EXTENSION, OUTDOORS_LOCATION_NAME, OUTDOORS_TARGET_CLOSENESS, OUTDOORS_Y_DIST_THRESHOLD, TARGET_CLOSENESS, Y_DIST_THRESHOLD } from "./consts";
 import * as THREE from "three";
 
 // Helper function to get node position
@@ -33,8 +33,11 @@ export async function getNodePosition(db: any, keyframeId: number, use_trans = t
 }
 
 // Helper function to get neighbours
-export async function getNeighbours(db: any, keyframeId: number): Promise<any[]> {
-  const result = await db.query(
+export async function getNeighbours(db: any, keyframeId: number, usePhysicalProximity = false): Promise<any[]> {
+
+
+
+  const directNeighbours = await db.query(
     `SELECT e.keyframe_id1 as keyframe_id, n.ts, COUNT(e1.keyframe_id1) as degree FROM refined_edges e 
               JOIN refined_edges e1 ON e.keyframe_id1 = e1.keyframe_id0
               JOIN refined_nodes n ON e.keyframe_id1 = n.keyframe_id 
@@ -42,7 +45,31 @@ export async function getNeighbours(db: any, keyframeId: number): Promise<any[]>
               GROUP BY e.keyframe_id1, n.ts`,
     [keyframeId]
   );
-  return result.rows;
+
+  if (usePhysicalProximity) {
+    const result = await db.query(`WITH target_point AS (
+    SELECT 
+        x_trans, 
+        y_trans, 
+        z_trans
+    FROM refined_nodes
+    WHERE keyframe_id = $1
+    )
+    SELECT 
+        *
+    FROM refined_nodes rn
+    JOIN target_point ON (
+        SQRT(
+            POWER(rn.y_trans - target_point.y_trans, 2) +
+            POWER(rn.x_trans - target_point.x_trans, 2) +
+            POWER(rn.z_trans - target_point.z_trans, 2)
+        ) <= $2
+    )
+    WHERE rn.keyframe_id != $1;`, [keyframeId, TARGET_CLOSENESS / COORDS_TO_METRES])
+    return [...new Set([...directNeighbours.rows, ...result.rows])]
+  }
+
+  return directNeighbours.rows;
 }
 
 // Helper function to calculate distance between two positions
@@ -63,8 +90,17 @@ export function calculateXZDistance(pos1: number[], pos2: number[]): number {
   return result;
 }
 
+export async function isNodeOutdoors(db: any, keyframeId: number) {
+  const locData = await db.query("SELECT location from refined_node_locations WHERE keyframe_id = $1", [keyframeId])
+
+  // If no location, take the more restrictive approach
+  if (locData.rowCount === 0) return false;
+
+  return locData.rows[0]["location"] === OUTDOORS_LOCATION_NAME;
+}
+
 // Helper function to delete a node and its edges
-export async function replaceNode(db: any, keyframeId: number, position: [number, number, number], ignore_distance = false) {
+export async function replaceNode(db: any, keyframeId: number, position: [number, number, number], ignore_distance = false, isOutdoors = false) {
   const direct_neighbours = (
     await db.query(
       "SELECT keyframe_id1 as keyframe_id FROM refined_edges WHERE keyframe_id0 = $1 AND (type = 0 OR type = 1)",
@@ -83,7 +119,7 @@ export async function replaceNode(db: any, keyframeId: number, position: [number
       const newNeighbourPosition = await getNodePosition(db, new_neighbour.keyframe_id)
       const distance = calculateXZDistance(newNeighbourPosition, pos);
       const yDistance = Math.abs(newNeighbourPosition[2] - pos[2])
-      if (!ignore_distance && (distance > TARGET_CLOSENESS || yDistance > Y_DIST_THRESHOLD)) {
+      if (!ignore_distance && (distance > (isOutdoors ? OUTDOORS_TARGET_CLOSENESS : TARGET_CLOSENESS) || yDistance > (isOutdoors ? OUTDOORS_Y_DIST_THRESHOLD : Y_DIST_THRESHOLD))) {
         console.debug("Cancelling delete - A new edge is too large - Distance:", distance, " ID:", neighbour.keyframe_id, " Compared ID:", new_neighbour.keyframe_id)
         await db.query("ROLLBACK;")
         return false;
@@ -143,6 +179,10 @@ export async function calculateImageSharpness(filePath: string): Promise<number>
     console.error("Error processing image:", err);
     return 0; // Consider as most blurry if error
   }
+}
+
+export function convertTimestampToImagename(ts: Number | string) {
+  return `${Number(ts).toFixed(5)}${KEYFRAME_IMG_EXTENSION}`
 }
 
 export async function getNextKeyframe(db: any, currentId: number) {
