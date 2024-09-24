@@ -1,6 +1,6 @@
 export const COORDS_TO_METRES = 10;
 export const TARGET_CLOSENESS = 5;
-export const ALWAYS_MERGE_CLOSENESS = 0.5;
+export const ALWAYS_MERGE_CLOSENESS = 1;
 export const OUTDOORS_ALWAYS_MERGE_CLOSENESS = 0.5;
 export const OUTDOORS_TARGET_CLOSENESS = 7;
 export const OUTDOORS_Y_DIST_THRESHOLD = 2;
