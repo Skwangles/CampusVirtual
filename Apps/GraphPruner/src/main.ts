@@ -46,6 +46,7 @@ async function useEnumerateGreedyTripleRingStrategy(
 
       for (const neighbour of neighbours) {
         const neighbourId = Number(neighbour.keyframe_id);
+        const isNeighbourOutdoors = await isNodeOutdoors(db, neighbourId)
         if (currentKeyframeId == neighbourId) continue
 
         if (checkedNeighbours.has(neighbourId)) continue;
@@ -60,11 +61,11 @@ async function useEnumerateGreedyTripleRingStrategy(
 
         const yDistance = Math.abs(neighbourPosition[1] - currentPosition[1]);
 
-        if (yDistance > (isOutdoors ? OUTDOORS_Y_DIST_THRESHOLD : Y_DIST_THRESHOLD)) {
+        if (yDistance > (isOutdoors && isNeighbourOutdoors ? OUTDOORS_Y_DIST_THRESHOLD : Y_DIST_THRESHOLD)) {
           continue;
         }
 
-        if (distance < (isOutdoors ? OUTDOORS_TARGET_CLOSENESS : TARGET_CLOSENESS) || distance < (isOutdoors ? OUTDOORS_ALWAYS_MERGE_CLOSENESS : ALWAYS_MERGE_CLOSENESS)) {
+        if (distance < (isOutdoors && isNeighbourOutdoors ? OUTDOORS_TARGET_CLOSENESS : TARGET_CLOSENESS) || distance < (isOutdoors && isNeighbourOutdoors ? OUTDOORS_ALWAYS_MERGE_CLOSENESS : ALWAYS_MERGE_CLOSENESS)) {
 
           const currentSharpness =
             (await calculateImageSharpness(
@@ -84,7 +85,7 @@ async function useEnumerateGreedyTripleRingStrategy(
             );
 
 
-            if (await replaceNode(db, neighbourId, neighbourPosition, distance <= (isOutdoors ? OUTDOORS_ALWAYS_MERGE_CLOSENESS : ALWAYS_MERGE_CLOSENESS), isOutdoors)) {
+            if (await replaceNode(db, neighbourId, neighbourPosition, distance <= (isOutdoors && isNeighbourOutdoors ? OUTDOORS_ALWAYS_MERGE_CLOSENESS : ALWAYS_MERGE_CLOSENESS), isOutdoors && isNeighbourOutdoors)) {
               neighboursHaveChanged = true;
             }
           } else {
@@ -162,6 +163,7 @@ async function useGreedyTripleRingStrategy(
 
       for (const neighbour of neighbours) {
         const neighbourId = Number(neighbour.keyframe_id);
+        const isNeighbourOutdoors = await isNodeOutdoors(db, neighbourId)
         if (currentKeyframeId == neighbourId) continue
 
         addToStack(neighbourId);
@@ -178,11 +180,11 @@ async function useGreedyTripleRingStrategy(
 
         const yDistance = Math.abs(neighbourPosition[1] - currentPosition[1]);
 
-        if (yDistance > (isOutdoors ? OUTDOORS_Y_DIST_THRESHOLD : Y_DIST_THRESHOLD)) {
+        if (yDistance > (isOutdoors && isNeighbourOutdoors ? OUTDOORS_Y_DIST_THRESHOLD : Y_DIST_THRESHOLD)) {
           continue;
         }
 
-        if (distance < (isOutdoors ? OUTDOORS_TARGET_CLOSENESS : TARGET_CLOSENESS) || distance < (isOutdoors ? OUTDOORS_ALWAYS_MERGE_CLOSENESS : ALWAYS_MERGE_CLOSENESS)) {
+        if (distance < (isOutdoors && isNeighbourOutdoors ? OUTDOORS_TARGET_CLOSENESS : TARGET_CLOSENESS) || distance < (isOutdoors && isNeighbourOutdoors ? OUTDOORS_ALWAYS_MERGE_CLOSENESS : ALWAYS_MERGE_CLOSENESS)) {
 
           const currentSharpness =
             (await calculateImageSharpness(
@@ -202,7 +204,7 @@ async function useGreedyTripleRingStrategy(
             );
 
 
-            if (await replaceNode(db, neighbourId, neighbourPosition, distance <= (isOutdoors ? OUTDOORS_ALWAYS_MERGE_CLOSENESS : ALWAYS_MERGE_CLOSENESS), isOutdoors)) {
+            if (await replaceNode(db, neighbourId, neighbourPosition, distance <= (isOutdoors && isNeighbourOutdoors ? OUTDOORS_ALWAYS_MERGE_CLOSENESS : ALWAYS_MERGE_CLOSENESS), isOutdoors && isNeighbourOutdoors)) {
               neighboursHaveChanged = true;
               visited.add(neighbourId); // Its been deleted, so don't try visit it
             }
