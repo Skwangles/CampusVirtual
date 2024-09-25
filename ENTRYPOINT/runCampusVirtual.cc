@@ -2,9 +2,9 @@
 #include <string>
 #include <boost/program_options.hpp>
 
-std::string path_to_stella = "SLAM/CampusVirtualInterface/build/";
-std::string path_to_fbow = "SLAM/FBoW/orb_vocab.fbow";
-std::string path_to_config = "SLAM/equirectangular.yaml";
+std::string path_to_stella = "Apps/SLAM/CampusVirtualInterface/build/";
+std::string path_to_fbow = "Apps/SLAM/FBoW/orb_vocab.fbow";
+std::string path_to_config = "Apps/SLAM/equirectangular.yaml";
 
 std::string db_user = "campusvirtual";
 std::string db_pwd = "Squeegee-Grandkid-Superhero8";
