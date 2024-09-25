@@ -150,6 +150,8 @@ async function useGreedyTripleRingStrategy(
     if (visited.has(currentKeyframeId)) continue; // Sanity check we aren't adding duplicates
     visited.add(currentKeyframeId);
 
+    console.log("Stack size: ", stack.length)
+
     let currentPosition = await getNodePosition(db, currentKeyframeId);
     const isOutdoors = await isNodeOutdoors(db, currentKeyframeId)
     let is_current_deleted = false;
@@ -264,7 +266,7 @@ async function prune() {
     // await db.query("BEGIN");
     // Find the first node in the list
 
-    await useGreedyTripleRingStrategy(db);
+    await useEnumerateGreedyTripleRingStrategy(db);
     console.log("Committing");
     // await db.query("COMMIT");
   } catch (e) {
