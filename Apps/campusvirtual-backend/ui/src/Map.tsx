@@ -54,7 +54,8 @@ const Map: React.FC<MinimapProps> = ({
         }>(`${API_PREFIX}/api/floorplans/${floorName}`)
         const img = new Image()
         img.src = `${API_PREFIX}/api/floorplans/${floorName}/image`
-        setHasImage(Boolean(response.data.has_image == true))
+        console.log('Has image', response.data)
+        setHasImage(String(response.data.has_image) == 'true')
         img.onload = () => {
           setImage(img)
           const aspectRatio = img.width / img.height
