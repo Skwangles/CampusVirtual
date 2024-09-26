@@ -37,6 +37,7 @@ const Map: React.FC<MinimapProps> = ({
   const [stageHeight, setStageHeight] = useState<number>(800)
   const [closeDrawer, setCloseDrawer] = useState<boolean>(false)
   const [doorImg] = useImage('Door.svg')
+  const [personImg] = useImage('black-person.png')
 
   useEffect(() => {
     const fetchFloorplanData = async () => {
@@ -145,17 +146,35 @@ const Map: React.FC<MinimapProps> = ({
                     )
                   })}
                   {nodes.map((node) => {
+                    if (String(node.id) === String(currentId)) {
+                      const iconWidth = 30
+                      const iconHeight = 30
+                      return (
+                        <KonvaImage
+                          image={personImg}
+                          width={iconWidth}
+                          height={iconHeight}
+                          key={node.id}
+                          x={node.x * stageWidth - iconWidth / 2}
+                          y={node.y * stageHeight - iconHeight / 2}
+                          name={node.id}
+                          onMouseUp={handleMouseUp}
+                          onTouchEnd={handleMouseUp}
+                        />
+                      )
+                    }
+
                     if (node.type >= 50) {
-                      const doorWidth = 15
-                      const doorHeight = 20
+                      const iconWidth = 15
+                      const iconHeight = 20
                       return (
                         <KonvaImage
                           image={doorImg}
-                          width={doorWidth}
-                          height={doorHeight}
+                          width={iconWidth}
+                          height={iconHeight}
                           key={node.id}
-                          x={node.x * stageWidth - doorWidth / 2}
-                          y={node.y * stageHeight - doorHeight / 2}
+                          x={node.x * stageWidth - iconWidth / 2}
+                          y={node.y * stageHeight - iconHeight / 2}
                           name={node.id}
                           onMouseUp={handleMouseUp}
                           onTouchEnd={handleMouseUp}
