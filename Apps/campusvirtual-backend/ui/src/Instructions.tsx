@@ -27,7 +27,11 @@ const Instructions: React.FC<InstructionsProps> = ({ point }) => {
           <ul>
             <li>
               Search for a region/location in the search bar and jump to it
-              directly, or have it highlight the path in blue
+              directly, or have it highlight the path in blue and guide you!
+            </li>
+            <li>
+              The end of a highlighted path is shown with a yellow rotating
+              square!
             </li>
             <li>
               Clear a highlighted path using a button in the top right (only
@@ -39,8 +43,9 @@ const Instructions: React.FC<InstructionsProps> = ({ point }) => {
             <li>Toggle the map with a button in the top left</li>
             <li>Hover over the map to increase its size</li>
             <li>
-              Map Key: Yellow = Current position, Door Icon= Move to next the
-              region, Red= Regular viewing point, Blue = A highlighted path
+              Map Key: Person Icon = You Current position, Door Icon= Move to
+              next the region, Red= Regular viewing point, Blue = A highlighted
+              path
             </li>
           </ul>
         </div>
