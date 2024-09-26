@@ -163,12 +163,62 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
     setLastSelectedPoint(foundNode || null)
   }
 
+  const moveX = (scale: number) => {
+    const newNodes = nodes.map((node) => {
+      node.x = node.x + scale
+      return node
+    })
+    setNodes(newNodes)
+    updateAllPoints(newNodes)
+  }
+
+  const moveY = (scale: number) => {
+    const newNodes = nodes.map((node) => {
+      node.y = node.y + scale
+      return node
+    })
+    setNodes(newNodes)
+    updateAllPoints(newNodes)
+  }
+  const rescaleX = (scale: number, originX: number = 0.5) => {
+    const newNodes = nodes.map((node) => {
+      node.x = (node.x - originX) * scale + originX
+      return node
+    })
+    setNodes(newNodes)
+    updateAllPoints(newNodes)
+  }
+
+  const rescaleY = (scale: number, originY: number = 0.5) => {
+    const newNodes = nodes.map((node) => {
+      node.y = (node.y - originY) * scale + originY
+      return node
+    })
+    setNodes(newNodes)
+    updateAllPoints(newNodes)
+  }
+
+  const rescalePoints = (
+    scale: number,
+    originX: number = 0.5,
+    originY: number = 0.5
+  ) => {
+    const newNodes = nodes.map((node) => {
+      node.x = (node.x - originX) * scale + originX
+      node.y = (node.y - originY) * scale + originY
+      return node
+    })
+    setNodes(newNodes)
+    updateAllPoints(newNodes)
+  }
+
   const handleMouseUp = (e: any) => {
     const x = e.target.x() / e.target.getStage().width()
     const y = e.target.y() / e.target.getStage().height()
 
     console.log('Finish pos:', x, y)
     setDragStartPos(null)
+
     for (const node of nodes.filter((node) => selectedPoints.has(node.id))) {
       axios.post(`${API_PREFIX}/api/floorplans/${floorplan}/update`, {
         id: node.id,
@@ -176,6 +226,17 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
         y: node.y,
       })
     }
+  }
+
+  const updateAllPoints = (nodes: Node[]) => {
+    axios
+      .post(`${API_PREFIX}/api/floorplans/${floorplan}/updatemultiple`, {
+        points: nodes,
+      })
+      .catch((e) => {
+        console.error('Error occurred updating!', e)
+      })
+    console.log('Updated!')
   }
 
   const padCordAwayFromEdge = (val: number) => {
@@ -197,43 +258,39 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
   }
 
   const flipPointsVertically = (onlySelected = false) => {
-    setNodes((prevNodes) => {
-      prevNodes.map((node) => {
-        if (onlySelected && !selectedPoints.has(node.id)) return node
-        node.y = padCordAwayFromEdge(1 - node.y)
-        return node
-      })
-
-      return prevNodes
+    const newNodes = nodes.map((node) => {
+      if (onlySelected && !selectedPoints.has(node.id)) return node
+      node.y = padCordAwayFromEdge(1 - node.y)
+      return node
     })
+
+    setNodes(newNodes)
+    updateAllPoints(newNodes)
     forceUpdate()
   }
 
   const flipPointsHorizontally = (onlySelected = false) => {
-    setNodes((prevNodes) => {
-      prevNodes.map((node) => {
-        if (onlySelected && !selectedPoints.has(node.id)) return node
-        node.x = padCordAwayFromEdge(1 - node.x)
-        return node
-      })
-
-      return prevNodes
+    const newNodes = nodes.map((node) => {
+      if (onlySelected && !selectedPoints.has(node.id)) return node
+      node.x = padCordAwayFromEdge(1 - node.x)
+      return node
     })
+
+    setNodes(newNodes)
+    updateAllPoints(newNodes)
     forceUpdate()
   }
   const rotatePoints = (onlySelected = false) => {
-    setNodes((prevNodes) => {
-      prevNodes.map((node) => {
-        if (onlySelected && !selectedPoints.has(node.id)) return node
-        const x = node.x
-        const y = node.y
-        node.x = padCordAwayFromEdge(y)
-        node.y = padCordAwayFromEdge(1 - x)
-        return node
-      })
-
-      return prevNodes
+    const newNodes = nodes.map((node) => {
+      if (onlySelected && !selectedPoints.has(node.id)) return node
+      const x = node.x
+      const y = node.y
+      node.x = padCordAwayFromEdge(y)
+      node.y = padCordAwayFromEdge(1 - x)
+      return node
     })
+    setNodes(newNodes)
+    updateAllPoints(newNodes)
     forceUpdate()
   }
 
@@ -252,6 +309,18 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
             <button onClick={() => flipPointsHorizontally()}>
               Flip All Points Horizontally
             </button>
+            <button onClick={() => rescalePoints(0.9)}>Scale Down</button>
+            <button onClick={() => rescalePoints(1.1)}>Scale Up</button>
+            <button onClick={() => rescaleX(0.9)}>Scale X Down</button>
+            <button onClick={() => rescaleX(1.1)}>Scale X UP</button>
+            <button onClick={() => rescaleY(1.1)}>Scale Y UP</button>
+            <button onClick={() => rescaleY(0.9)}>Scale Y Down</button>
+
+            <button onClick={() => moveX(0.01)}>Move Right</button>
+            <button onClick={() => moveX(-0.01)}>Move Left</button>
+
+            <button onClick={() => moveY(-0.01)}>Move Up</button>
+            <button onClick={() => moveY(0.01)}>Move Y Down</button>
           </div>
           <div>
             <button onClick={() => rotatePoints(true)}>
