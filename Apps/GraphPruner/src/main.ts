@@ -266,7 +266,8 @@ async function prune() {
     // await db.query("BEGIN");
     // Find the first node in the list
 
-    await useEnumerateGreedyTripleRingStrategy(db);
+
+    await useGreedyTripleRingStrategy(db);
     console.log("Committing");
     // await db.query("COMMIT");
   } catch (e) {
