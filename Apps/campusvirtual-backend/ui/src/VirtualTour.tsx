@@ -449,6 +449,7 @@ const VirtualTour: React.FC = () => {
       <div
         style={{
           background: '#101010F0',
+          color: 'white',
           position: 'fixed',
           left: 0,
           bottom: 0,
