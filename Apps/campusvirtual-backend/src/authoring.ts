@@ -55,6 +55,27 @@ if (ENABLE_AUTHORING_PAGE) {
     }
   });
 
+
+  app.post('/api/floorplans/:name/updatemultiple', async (req: Request, res: Response) => {
+    const { name } = req.params;
+    const { points } = req.body;
+    for (const point of points) {
+      await db.query("UPDATE floorplan_points SET x = $1, y = $2 WHERE keyframe_id = $3 AND location = $4;", [point.x, point.y, point.id, name]).then(
+        (val: any) => {
+          if (val.rowCount == 0) {
+            res.status(404).send("Could not find point to update")
+            return;
+          }
+        }
+      ).catch(() => {
+        res.status(404).send("Error updating point")
+        return;
+      });
+    }
+    res.sendStatus(200);
+  });
+
+
   app.post('/api/floorplans/:name/update', (req: Request, res: Response) => {
     const { name } = req.params;
     const { id, x, y } = req.body;

@@ -7,7 +7,7 @@ import { COORDS_TO_METRES, ENABLE_AUTHORING_PAGE, KEYFRAME_IMG_DIR, KEYFRAME_IMG
 import { searchNeighbour } from './neighbourSearch'
 import db from './db'
 import { processImage } from './images'
-import floorplanAPI from './floorplans'
+import floorplanAPI from './authoring'
 import { stripDirectoryTraversal } from './utils'
 import { aStarPathfinding } from './pathfinding'
 
@@ -159,6 +159,6 @@ app.use(floorplanAPI)
 
 const port = 3001
 app.listen(port, () => {
-  initData()
+  initData(true)
   console.log(`Server running on port ${port}`)
 })
