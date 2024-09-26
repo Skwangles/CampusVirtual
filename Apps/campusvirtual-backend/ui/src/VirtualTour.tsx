@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import { Canvas, useThree } from '@react-three/fiber'
+import React, { useEffect, useRef, useState } from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import {
   HOTSPOT_COLOUR,
   HOTSPOT_HIGHLIGHTED,
@@ -23,6 +23,7 @@ interface HotspotProps {
   image_identifier: string
   onClick: () => void
   isHighlighted: boolean
+  isEnd: boolean
 }
 
 interface HotspotObj {
@@ -52,28 +53,70 @@ const Hotspot: React.FC<HotspotProps> = ({
   rotation,
   image_identifier,
   isHighlighted,
+  isEnd,
 }) => {
   const sphereSize = 20 / COORDS_TO_METRES
   const outlineSize = sphereSize * 1.09
   const dropHotspotsBelowEyeLevelOffset = 8 / COORDS_TO_METRES
 
   position[1] -= COORDS_TO_METRES * dropHotspotsBelowEyeLevelOffset
+
+  const endRef = useRef<any>(null)
+  const outlineEndRef = useRef<any>(null)
+
+  useFrame((state, delta) => {
+    if (
+      isEnd &&
+      endRef.current &&
+      endRef.current.rotation &&
+      outlineEndRef.current &&
+      outlineEndRef.current.rotation
+    ) {
+      endRef.current.rotation.x += delta
+      outlineEndRef.current.rotation.x += delta
+    }
+  })
+
   return (
     <>
       <mesh
         position={position}
         rotation={rotation}
+        ref={endRef}
         onClick={onClick}
         receiveShadow
       >
-        <sphereGeometry args={[sphereSize, 20, 20]} />
+        {isEnd ? (
+          <boxGeometry
+            args={[sphereSize * 3, sphereSize * 3, sphereSize * 3]}
+          />
+        ) : (
+          <sphereGeometry args={[sphereSize, 20, 20]} />
+        )}
         <meshStandardMaterial
-          color={isHighlighted ? HOTSPOT_HIGHLIGHTED : HOTSPOT_COLOUR}
+          color={
+            isEnd
+              ? '#FFFF00'
+              : isHighlighted
+              ? HOTSPOT_HIGHLIGHTED
+              : HOTSPOT_COLOUR
+          }
         />
       </mesh>
       ;
-      <mesh position={position} rotation={rotation} onClick={onClick}>
-        <sphereGeometry args={[outlineSize, 20, 20]} />
+      <mesh
+        position={position}
+        rotation={rotation}
+        ref={outlineEndRef}
+        onClick={onClick}
+      >
+        {isEnd ? (
+          <boxGeometry
+            args={[outlineSize * 3, outlineSize * 3, outlineSize * 3]}
+          />
+        ) : (
+          <sphereGeometry args={[outlineSize, 20, 20]} />
+        )}
         <meshBasicMaterial color={HOTSPOT_OUTLINE} side={THREE.BackSide} />
       </mesh>
     </>
@@ -141,6 +184,12 @@ const SphereWithHotspots: React.FC<SphereWithHotspotsProps> = ({
           image_identifier={Number(hotspot.ts).toFixed(5)}
           onClick={() => onHotspotClick(hotspot)}
           isHighlighted={highlightedOrbs.includes(Number(hotspot.id))}
+          isEnd={
+            highlightedOrbs.length > 0
+              ? highlightedOrbs[highlightedOrbs.length - 1] ===
+                Number(hotspot.id)
+              : false
+          }
         />
       ))}
     </group>
@@ -388,7 +437,9 @@ const VirtualTour: React.FC = () => {
       highlightedPath.includes(Number(currentId))
     ) {
       setHighlightedPath(
-        highlightedPath.slice(highlightedPath.indexOf(Number(currentId)))
+        highlightedPath.indexOf(Number(currentId)) == highlightedPath.length - 1
+          ? []
+          : highlightedPath.slice(highlightedPath.indexOf(Number(currentId)))
       )
     }
   }, [currentId])
