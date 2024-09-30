@@ -43,7 +43,7 @@ const Instructions: React.FC<InstructionsProps> = ({ point }) => {
             <li>Toggle the map with a button in the top left</li>
             <li>Hover over the map to increase its size</li>
             <li>
-              Map Key: Person Icon = You Current position, Door Icon= Move to
+              Map Key: Person Icon = Your Current position, Door Icon= Move to
               next the region, Red= Regular viewing point, Blue = A highlighted
               path
             </li>
