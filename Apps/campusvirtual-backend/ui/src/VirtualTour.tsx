@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import {
+  HIDE_POINTS_DURING_HIGHLIGHT,
   HOTSPOT_COLOUR,
   HOTSPOT_HIGHLIGHTED,
   HOTSPOT_OUTLINE,
   SHOW_NAV_SEARCH,
+  USE_GLB_MARKER_OBJECT,
 } from './consts'
 // import { OrbitControls } from '@react-three/drei';
 import { API_PREFIX, showMap, COORDS_TO_METRES, PROJECT_NAME } from './consts'
@@ -47,6 +49,50 @@ interface NeighbourData {
   keyframe_id: string
 }
 
+import { useGLTF } from '@react-three/drei'
+import { GLTF } from 'three-stdlib'
+
+type GLTFResult = GLTF & {
+  nodes: {
+    ['Node-Mesh']: THREE.Mesh
+    ['Node-Mesh_1']: THREE.Mesh
+  }
+  materials: {
+    mat8: THREE.MeshStandardMaterial
+    mat23: THREE.MeshStandardMaterial
+  }
+  position: { x: number; y: number; z: number }
+  onClick: any
+}
+
+export function Model(props: JSX.IntrinsicElements['group']) {
+  const refs = useRef<THREE.Group>(null)
+
+  useFrame((state, delta) => {
+    if (refs && refs.current && refs.current.rotation) {
+      refs.current.rotation.y += delta
+    }
+  })
+
+  const { nodes, materials } = useGLTF('/marker.glb') as GLTFResult
+  return (
+    <group {...props} dispose={null} ref={refs}>
+      <mesh
+        scale={3}
+        geometry={nodes['Node-Mesh'].geometry}
+        material={materials.mat8}
+      />
+      <mesh
+        scale={3}
+        geometry={nodes['Node-Mesh_1'].geometry}
+        material={materials.mat23}
+      />
+    </group>
+  )
+}
+
+useGLTF.preload('/marker.glb')
+
 const Hotspot: React.FC<HotspotProps> = ({
   position,
   onClick,
@@ -76,6 +122,10 @@ const Hotspot: React.FC<HotspotProps> = ({
       outlineEndRef.current.rotation.x += delta
     }
   })
+
+  if (USE_GLB_MARKER_OBJECT && isEnd) {
+    return <Model position={position} onClick={onClick} />
+  }
 
   return (
     <>
@@ -176,22 +226,28 @@ const SphereWithHotspots: React.FC<SphereWithHotspotsProps> = ({
         <sphereGeometry args={[500, 64, 64]} />
         <meshBasicMaterial map={currentTexture} side={THREE.BackSide} />
       </mesh>
-      {hotspots.map((hotspot, index) => (
-        <Hotspot
-          key={index}
-          position={hotspot.position}
-          rotation={hotspot.rotation}
-          image_identifier={Number(hotspot.ts).toFixed(5)}
-          onClick={() => onHotspotClick(hotspot)}
-          isHighlighted={highlightedOrbs.includes(Number(hotspot.id))}
-          isEnd={
-            highlightedOrbs.length > 0
-              ? highlightedOrbs[highlightedOrbs.length - 1] ===
-                Number(hotspot.id)
-              : false
-          }
-        />
-      ))}
+      {hotspots
+        .filter((hotspot) =>
+          HIDE_POINTS_DURING_HIGHLIGHT && highlightedOrbs.length > 0
+            ? highlightedOrbs.includes(Number(hotspot.id))
+            : true
+        )
+        .map((hotspot, index) => (
+          <Hotspot
+            key={index}
+            position={hotspot.position}
+            rotation={hotspot.rotation}
+            image_identifier={Number(hotspot.ts).toFixed(5)}
+            onClick={() => onHotspotClick(hotspot)}
+            isHighlighted={highlightedOrbs.includes(Number(hotspot.id))}
+            isEnd={
+              highlightedOrbs.length > 0
+                ? highlightedOrbs[highlightedOrbs.length - 1] ===
+                  Number(hotspot.id)
+                : false
+            }
+          />
+        ))}
     </group>
   )
 }
