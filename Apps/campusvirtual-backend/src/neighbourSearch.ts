@@ -4,7 +4,7 @@ import db from './db';
 
 export async function searchNeighbour(is_refined: boolean, mainPointId: number, distanceThreshold: number, yDistThresh: number, currentPoint: { x_trans: any; y_trans: any; z_trans: any; }) {
   // Used BFS to find all points down the graph within a range
-  const minDepth = 1; // case for when point distances are too large to give decent # of options
+  const minDepth = 2; // case for when point distances are too large to give decent # of options
   const maxDepth = 5;
   const usePhysicalProximity = true;
 
