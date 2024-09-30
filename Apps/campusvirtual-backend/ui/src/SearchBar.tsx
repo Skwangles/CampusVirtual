@@ -10,7 +10,7 @@ interface SearchBarProps {
 }
 
 const IncludesValue = (data: string[], value: string) => {
-  return data.map((val) => val.toLowerCase()).includes(value.toLowerCase())
+  return data.find((val) => val.toLowerCase() == value.toLowerCase())
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({
@@ -29,7 +29,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
     setIsDisabled(!IncludesValue(data, value))
     if (value) {
       const filteredSuggestions = data.filter((item) =>
-        item.toLowerCase().includes(value.toLowerCase())
+        item
+          .toLowerCase()
+          .replace(/[.'-\s]/, '')
+          .includes(value.replace(/[.'-\s]/, '').toLowerCase())
       )
       setSuggestions(filteredSuggestions.sort())
     } else {
@@ -60,6 +63,19 @@ const SearchBar: React.FC<SearchBarProps> = ({
         value={query}
         onChange={handleChange}
         placeholder="Search a location..."
+        onKeyDown={(event) => {
+          if (event.key == 'Enter') {
+            if (IncludesValue(data, query)) {
+              setIsDisabled(false)
+              document.getElementById('highlight-button')?.click()
+            } else if (suggestions.length > 0) {
+              setQuery(suggestions[0])
+              setIsDisabled(false)
+              setSuggestions([])
+              document.getElementById('highlight-button')?.click()
+            }
+          }
+        }}
       />
       {suggestions.length > 0 && (
         <ul className="suggestions-list">
@@ -71,9 +87,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
         </ul>
       )}
       <button
+        id="highlight-button"
         className="go-button"
         onClick={() => {
-          if (IncludesValue(data, query)) highlightCallback(query)
+          const searchFor = IncludesValue(data, query)
+          if (searchFor) highlightCallback(searchFor)
           else toast.error('Please enter/select a valid location')
         }}
         disabled={isDisabled}
@@ -81,9 +99,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
         Highlight Path
       </button>
       <button
+        id="goTo-button"
         className="go-button"
         onClick={() => {
-          if (IncludesValue(data, query)) jumpToCallback(query)
+          const searchFor = IncludesValue(data, query)
+          if (searchFor) highlightCallback(searchFor)
           else toast.error('Please enter/select a valid location')
         }}
         disabled={isDisabled}
