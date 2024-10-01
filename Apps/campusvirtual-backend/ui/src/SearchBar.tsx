@@ -67,6 +67,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
           if (event.key == 'Enter') {
             if (IncludesValue(data, query)) {
               setIsDisabled(false)
+              setSuggestions([])
               document.getElementById('highlight-button')?.click()
             } else if (suggestions.length > 0) {
               setQuery(suggestions[0])
@@ -103,7 +104,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         className="go-button"
         onClick={() => {
           const searchFor = IncludesValue(data, query)
-          if (searchFor) highlightCallback(searchFor)
+          if (searchFor) jumpToCallback(searchFor)
           else toast.error('Please enter/select a valid location')
         }}
         disabled={isDisabled}
