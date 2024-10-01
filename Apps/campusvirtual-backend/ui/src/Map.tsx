@@ -43,6 +43,7 @@ const Map: React.FC<MinimapProps> = ({
   const [stageHeight, setStageHeight] = useState<number>(800)
   const [closeDrawer, setCloseDrawer] = useState<boolean>(false)
   const [doorImg] = useImage('Door.svg')
+  const [blueDoorImg] = useImage('Door.png')
   const [personImg] = useImage(
     USE_ORANGE_PERSON ? 'person.png' : 'black-person.png'
   )
@@ -192,7 +193,11 @@ const Map: React.FC<MinimapProps> = ({
                         const iconHeight = 20
                         return (
                           <KonvaImage
-                            image={doorImg}
+                            image={
+                              highlightedPoints.includes(Number(node.id))
+                                ? blueDoorImg
+                                : doorImg
+                            }
                             width={iconWidth}
                             height={iconHeight}
                             key={node.id}
