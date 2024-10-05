@@ -8,6 +8,7 @@ Super important that you do it _recursive_, as we have submodules that need clon
 ## Required Libs
 
 - Docker - [https://www.docker.com/get-started/](https://www.docker.com/get-started/) - Used for Postgres Database
+- Stella VSLAM - https://github.com/Skwangles/stella_vslam.git - Forked version used for pose tracking (automatically installed by BUILD_LIBS.sh)
 
 ### Installed by BUILD_LIBS.sh
 
