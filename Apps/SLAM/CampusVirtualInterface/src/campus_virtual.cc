@@ -93,6 +93,7 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
 
     std::mutex mtx_pause;
     bool is_paused = false;
+
     std::mutex mtx_terminate;
     bool terminate_is_requested = false;
     std::mutex mtx_step;
@@ -106,8 +107,18 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
         //     std::lock_guard<std::mutex> lock(mtx_loop);
         //     loop_id = id;
         // })
-        iridescence_viewer->add_checkbox("Pause", [&is_paused, &mtx_pause](bool check) {
+        iridescence_viewer->add_checkbox("Pause", [&is_paused, &mtx_pause, &slam](bool check) {
             std::lock_guard<std::mutex> lock(mtx_pause);
+            if (is_paused != check)
+            {
+                if (check){
+                    slam->disable_loop_detector();
+                }
+                else {
+                    slam->enable_loop_detector();
+                }
+
+            }
             is_paused = check;
         });
         iridescence_viewer->add_button("Step", [&step_count, &mtx_step] {
@@ -158,10 +169,10 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
 #ifdef HAVE_IRIDESCENCE_VIEWER
             while (true) {
                 {
-                    std::lock_guard<std::mutex> lock(mtx_pause);
-                    if (!is_paused) {
+                    // std::lock_guard<std::mutex> lock(mtx_pause);
+                    // if (!is_paused) {
                         break;
-                    }
+                    // }
                 }
                 {
                     std::lock_guard<std::mutex> lock(mtx_step);
@@ -195,6 +206,9 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
             
 
             if (!frame.empty() && (num_frame % frame_skip == 0)) {
+
+
+
                 cv::resize(frame, downsized_frame, cv::Size(slam_img_width, slam_img_height));
 		        bool is_keyframe = slam->feed_monocular_frame_bool(downsized_frame, timestamp, mask);
                 
@@ -264,6 +278,9 @@ int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                 break;
             }
 #endif
+            if (num_frame > 10 && ms == 0){
+                break; // The video has finished and is spitting out 0ms
+            }
         }
 
         // wait until the loop BA is finished
