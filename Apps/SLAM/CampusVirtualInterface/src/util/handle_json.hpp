@@ -28,7 +28,11 @@ std::string find_group_from_json(nlohmann::json &obj, double &ms){
     nlohmann::json timecode_array = obj["data"];
     std::string group;
     for (auto timecode : timecode_array){
-        double time = std::stod(timecode["t"].dump());
+
+        std::string time_str = timecode["t"].dump();
+        time_str.erase(std::remove(time_str.begin(), time_str.end(), '\"'), time_str.end());
+        
+        double time = std::stod(time_str);
         if (time > seconds){
             return group;
         }
