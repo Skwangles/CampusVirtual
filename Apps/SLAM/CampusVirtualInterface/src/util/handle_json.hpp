@@ -32,9 +32,9 @@ std::string find_group_from_json(nlohmann::json &obj, double &ms){
         std::string time_str = timecode["t"].dump();
         time_str.erase(std::remove(time_str.begin(), time_str.end(), '\"'), time_str.end());
         
-        double time = std::stod(time_str);
-        if (time > seconds){
-            return group;
+        double time_ms = std::stod(time_str)/1000;
+        if (time_ms > seconds){
+            return group; // return the previous group's
         }
         group = timecode["g"].dump();
         group.erase(std::remove(group.begin(), group.end(), '\"'), group.end());
