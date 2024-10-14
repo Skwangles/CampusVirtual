@@ -1,4 +1,5 @@
-![CampusVirtual](logo/CampusVirtualLogo.png)
+![CampusVirtual: Large-scale Low-cost Panoramic Virtual Tours](logo/CampusVirtualLogo.png)
+
 
 ## Installing
 
