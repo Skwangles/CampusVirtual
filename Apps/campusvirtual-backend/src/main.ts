@@ -148,7 +148,7 @@ app.get('/image/:detail/:ts', function (req: { params: { ts: string, detail: str
 
   if (fs.existsSync(imgPath)) {
 
-    processImage(res, imgPath, detail === "hires" ? -1 : (detail === "lores" ? 200 : 50))
+    processImage(res, imgPath, detail === "hires" ? -1 : (detail === "lores" ? 960 : 200))
   }
   else {
     res.sendFile(path.join(KEYFRAME_IMG_DIR, "test.jpg"))
