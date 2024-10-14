@@ -3,9 +3,16 @@ import { COORDS_TO_METRES, KEYFRAME_IMG_EXTENSION, OUTDOORS_LOCATION_NAME, OUTDO
 import * as THREE from "three";
 
 // Helper function to get node position
-export async function getNodePosition(db: any, keyframeId: number, use_trans = true) {
+export async function getNodePosition(db: any, keyframeId: string, use_trans = true) {
+  const nodeInfo = await getNodeInfo(db, keyframeId, use_trans);
+  return nodeInfo["position"];
+}
+
+
+export async function getNodeInfo(db: any, keyframeId: string, use_trans = true) {
+
   const result = await db.query(
-    "SELECT pose, x_trans, y_trans, z_trans FROM refined_nodes WHERE keyframe_id = $1 LIMIT 1;",
+    "SELECT ts, label, pose, x_trans, y_trans, z_trans FROM refined_nodes WHERE keyframe_id = $1 LIMIT 1;",
     [keyframeId]
   );
   const positionInfo = result.rows;
@@ -21,7 +28,8 @@ export async function getNodePosition(db: any, keyframeId: number, use_trans = t
       node_info.z_trans * COORDS_TO_METRES,
     ];
     if (!ret) throw new Error("Return result was Null of getNodePosition");
-    return ret;
+    node_info["position"] = ret;
+    return node_info;
   }
 
   const ret = calculatePositionFromMatrix(result.rows[0]?.pose);
@@ -29,7 +37,9 @@ export async function getNodePosition(db: any, keyframeId: number, use_trans = t
     throw new Error(
       "Return result was Null of getNodePosition - calculating from pose"
     );
+  node_info["position"] = ret;
   return ret;
+
 }
 
 // Helper function to get neighbours

@@ -11,7 +11,7 @@ import {
   OUTDOORS_ALWAYS_MERGE_CLOSENESS,
   OUTDOORS_Y_DIST_THRESHOLD,
 } from "./consts";
-import { calculateImageSharpness, calculateXZDistance, convertTimestampToImagename, getNeighbours, getNextKeyframe, getNodePosition, isNodeOutdoors, replaceNode } from './utils'
+import { calculateImageSharpness, calculateXZDistance, convertTimestampToImagename, getNeighbours, getNextKeyframe, getNodeInfo, getNodePosition, isNodeOutdoors, replaceNode } from './utils'
 
 // TODO: Look at  'A New Trajectory Reduction Method for Mobile Devices Operating Both Online and Offline' paper
 
@@ -33,7 +33,7 @@ async function useEnumerateGreedyTripleRingStrategy(
   // Loop through every node
   while (!isNaN(currentKeyframeId)) {
 
-    let currentPosition = await getNodePosition(db, currentKeyframeId);
+    let currentPosition = await getNodePosition(db, String(currentKeyframeId));
     const isOutdoors = await isNodeOutdoors(db, currentKeyframeId)
     let is_current_deleted = false;
     console.log("Current:", currentKeyframeId);
@@ -53,7 +53,7 @@ async function useEnumerateGreedyTripleRingStrategy(
         checkedNeighbours.add(neighbourId); // Not using 'visited' here, because we want the 'current' to delete a previous node if it was found sharper
 
         const ts = neighbour.ts;
-        const neighbourPosition = await getNodePosition(db, neighbourId);
+        const neighbourPosition = await getNodePosition(db, String(neighbourId));
         const distance = calculateXZDistance(
           currentPosition,
           neighbourPosition
@@ -151,8 +151,9 @@ async function useGreedyTripleRingStrategy(
     visited.add(currentKeyframeId);
 
     console.log("Stack size: ", stack.length)
-
-    let currentPosition = await getNodePosition(db, currentKeyframeId);
+    const node_info = await getNodeInfo(db, String(currentKeyframeId))
+    currentTs = node_info["ts"]
+    let currentPosition = node_info["position"]
     const isOutdoors = await isNodeOutdoors(db, currentKeyframeId)
     let is_current_deleted = false;
     console.log("Current:", currentKeyframeId);
@@ -174,7 +175,7 @@ async function useGreedyTripleRingStrategy(
         checkedNeighbours.add(neighbourId); // Not using 'visited' here, because we want the 'current' to delete a previous node if it was found sharper
 
         const ts = neighbour.ts;
-        const neighbourPosition = await getNodePosition(db, neighbourId);
+        const neighbourPosition = await getNodePosition(db, String(neighbourId));
         const distance = calculateXZDistance(
           currentPosition,
           neighbourPosition

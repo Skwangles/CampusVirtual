@@ -6,5 +6,5 @@ export const OUTDOORS_TARGET_CLOSENESS = 7;
 export const OUTDOORS_Y_DIST_THRESHOLD = 2;
 export const Y_DIST_THRESHOLD = 2
 export const KEYFRAME_IMG_EXTENSION = ".png"
-export const KEYFRAME_IMG_DIR = "/media/skwangles/KINGSTON/MEDIA/pictures/"
+export const KEYFRAME_IMG_DIR = "/media/skwangles/KINGSTON/MEDIA/eds-pictures/"
 export const OUTDOORS_LOCATION_NAME = "outdoors"
