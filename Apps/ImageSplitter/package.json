@@ -1,0 +1,15 @@
+{
+  "name": "imagesplitter",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "detect which images are in the Postgres DB and copying just them",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "pg-pool": "^3.7.0"
+  }
+}
