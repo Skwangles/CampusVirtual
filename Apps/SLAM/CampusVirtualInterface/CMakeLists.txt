@@ -36,15 +36,16 @@ endif()
 # if(pangolin_viewer_FOUND)
 #     message(STATUS "Viewer for examples: PangolinViewer")
 # endif()
-find_package(campus_virtual_socket_publisher REQUIRED)
-if(campus_virtual_socket_publisher_FOUND)
-    message(STATUS "Viewer for Campus Virtual: SocketPublisher")
-endif()
+# find_package(campus_virtual_socket_publisher REQUIRED)
+# if(campus_virtual_socket_publisher_FOUND)
+#     message(STATUS "Viewer for Campus Virtual: SocketPublisher")
+# endif()
 # find_package(socket_publisher QUIET)
 # if(socket_publisher_FOUND)
 #     message(STATUS "Viewer for examples: SocketPublisher")
 # endif()
-find_package(iridescence_viewer)
+
+find_package(iridescence_viewer) # Used for development, and the editing session
 if(iridescence_viewer_FOUND)
     message(STATUS "Viewer for examples: IridescenceViewer")
 endif()
@@ -71,25 +72,25 @@ foreach(EXECUTABLE_TARGET IN LISTS EXECUTABLE_TARGETS)
                           RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${PROJECT_BINARY_DIR}"
                           RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${PROJECT_BINARY_DIR}")
 
-    # PangolinViewer is used on a priority basis
-    if(pangolin_viewer_FOUND)
-        # Set macro flag
-        target_compile_definitions(${EXECUTABLE_TARGET} PRIVATE HAVE_PANGOLIN_VIEWER)
-        # Link viewer
-        target_link_libraries(${EXECUTABLE_TARGET} PRIVATE pangolin_viewer::pangolin_viewer)
-    endif()
-    if(socket_publisher_FOUND)
-        # Set macro flag
-        target_compile_definitions(${EXECUTABLE_TARGET} PRIVATE HAVE_SOCKET_PUBLISHER)
-        # Link viewer
-        target_link_libraries(${EXECUTABLE_TARGET} PRIVATE socket_publisher::socket_publisher)
-    endif()
-    if(campus_virtual_socket_publisher_FOUND)
-        # Set macro flag
-        target_compile_definitions(${EXECUTABLE_TARGET} PRIVATE HAVE_CAMPUS_VIRTUAL_SOCKET_PUBLISHER)
-        # Link viewer
-        target_link_libraries(${EXECUTABLE_TARGET} PRIVATE campus_virtual_socket_publisher::campus_virtual_socket_publisher)
-    endif()
+    # # PangolinViewer is used on a priority basis
+    # if(pangolin_viewer_FOUND)
+    #     # Set macro flag
+    #     target_compile_definitions(${EXECUTABLE_TARGET} PRIVATE HAVE_PANGOLIN_VIEWER)
+    #     # Link viewer
+    #     target_link_libraries(${EXECUTABLE_TARGET} PRIVATE pangolin_viewer::pangolin_viewer)
+    # endif()
+    # if(socket_publisher_FOUND)
+    #     # Set macro flag
+    #     target_compile_definitions(${EXECUTABLE_TARGET} PRIVATE HAVE_SOCKET_PUBLISHER)
+    #     # Link viewer
+    #     target_link_libraries(${EXECUTABLE_TARGET} PRIVATE socket_publisher::socket_publisher)
+    # endif()
+    # if(campus_virtual_socket_publisher_FOUND)
+    #     # Set macro flag
+    #     target_compile_definitions(${EXECUTABLE_TARGET} PRIVATE HAVE_CAMPUS_VIRTUAL_SOCKET_PUBLISHER)
+    #     # Link viewer
+    #     target_link_libraries(${EXECUTABLE_TARGET} PRIVATE campus_virtual_socket_publisher::campus_virtual_socket_publisher)
+    # endif()
     if(iridescence_viewer_FOUND)
         # Set macro flag
         target_compile_definitions(${EXECUTABLE_TARGET} PRIVATE HAVE_IRIDESCENCE_VIEWER)
