@@ -6,8 +6,8 @@ Camera:
   model: 'equirectangular'
 
   fps: 30
-  cols: 1920
-  rows: 960
+  cols: 960
+  rows: 480
 
   color_order: 'RGB'
 
@@ -26,7 +26,7 @@ Mapping:
   backend: 'g2o'
   baseline_dist_thr_ratio: 0.02
   redundant_obs_ratio_thr: 0.95
-  # use_robust-matcher_for_relocalization: true
+  use_robust-matcher_for_relocalization: true
   num_covisibilities_for_landmark_generation: 20
   num_covisibilities_for_landmark_fusion: 20
   residual_deg_thr: 0.4
@@ -35,21 +35,25 @@ Tracking:
   backend: 'g2o'
   enable_auto_relocalization: true
 
+Initializer:
+  use_fixed_seed: 3
+
 LoopDetector:
   backend: 'g2o'
   enabled: true
- # reject_by_graph_distance: false
- # top_n_covisibilities_to_search: 50
- # num_final_matches_threshold: 20
- # num_matches_thr: 10
- # num_optimized_inliers_thr: 20
- # num_matches_thr_robust_matcher: 0
- # min_continuity: 2
- # num_matches_thr_brute_force: 20
+  # reject_by_graph_distance: false
+  # top_n_covisibilities_to_search: 50
+  # num_final_matches_threshold: 20
+  # num_matches_thr: 10
+  # num_optimized_inliers_thr: 20
+  # num_matches_thr_robust_matcher: 0
+  # min_continuity: 2
+  # num_matches_thr_brute_force: 20
 
-#Relocalizer:
-#  min_num_bow_matches: 15
-#  max_num_ransac_iter: 15
+Relocalizer:
+  min_num_bow_matches: 15
+  max_num_ransac_iter: 15
+  use_fixed_seed: 3
 
 GraphOptimizer:
   min_num_shared_lms: 200
