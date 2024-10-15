@@ -115,6 +115,17 @@ async function useEnumerateGreedyTripleRingStrategy(
 }
 
 
+async function get_sharpness(sharpnessValues: any, ts: number, image_directory = KEYFRAME_IMG_DIR) {
+  if (ts in sharpnessValues) {
+    return sharpnessValues[ts]
+  }
+  const val = (await calculateImageSharpness(
+    `${image_directory}${convertTimestampToImagename(ts)}`
+  )) ?? 0;
+  sharpnessValues[ts] = val;
+  return val;
+}
+
 /**
  * Loop through each node, if a node is within 5m keep the least blurry
  * (except if is a junction point, then never remove that one)
@@ -126,7 +137,7 @@ async function useGreedyTripleRingStrategy(
 ) {
 
   const startTime = new Date().getTime()
-
+  let sharpnessValues = {};
   const firstFrame = await getNextKeyframe(db, -1);
   if (!firstFrame) {
     throw new Error("Could not find the first frame!");
@@ -151,17 +162,23 @@ async function useGreedyTripleRingStrategy(
     visited.add(currentKeyframeId);
 
     console.log("Stack size: ", stack.length)
+    console.time("Get Node Info")
     const node_info = await getNodeInfo(db, String(currentKeyframeId))
     currentTs = node_info["ts"]
     let currentPosition = node_info["position"]
     const isOutdoors = await isNodeOutdoors(db, currentKeyframeId)
     let is_current_deleted = false;
+    console.timeEnd("Get Node Info")
+
+    const currentSharpness = await get_sharpness(sharpnessValues, currentTs)
     console.log("Current:", currentKeyframeId);
 
     const checkedNeighbours = new Set();
     let neighboursHaveChanged = true;
     while (neighboursHaveChanged && !is_current_deleted) {
+      console.time("Get Neighbours")
       const neighbours = await getNeighbours(db, currentKeyframeId, false);
+      console.timeEnd("Get Neighbours")
       neighboursHaveChanged = false;
 
       for (const neighbour of neighbours) {
@@ -189,15 +206,9 @@ async function useGreedyTripleRingStrategy(
 
         if (distance < (isOutdoors && isNeighbourOutdoors ? OUTDOORS_TARGET_CLOSENESS : TARGET_CLOSENESS) || distance < (isOutdoors && isNeighbourOutdoors ? OUTDOORS_ALWAYS_MERGE_CLOSENESS : ALWAYS_MERGE_CLOSENESS)) {
 
-          const currentSharpness =
-            (await calculateImageSharpness(
-              `${image_directory}${convertTimestampToImagename(currentTs)}`
-            )) ?? 0;
-          const neighbourSharpness =
-            (await calculateImageSharpness(
-              `${image_directory}${convertTimestampToImagename(ts)}`
-            )) ?? 0;
-
+          console.time("Calc Sharpness")
+          const neighbourSharpness = await get_sharpness(sharpnessValues, ts)
+          console.timeEnd("Calc Sharpness");
           if (neighbourSharpness <= currentSharpness) {
             console.log(
               "Deleting neighbour",
@@ -206,11 +217,12 @@ async function useGreedyTripleRingStrategy(
               neighbourSharpness
             );
 
-
+            console.time("Replace Node")
             if (await replaceNode(db, neighbourId, neighbourPosition, distance <= (isOutdoors && isNeighbourOutdoors ? OUTDOORS_ALWAYS_MERGE_CLOSENESS : ALWAYS_MERGE_CLOSENESS), isOutdoors && isNeighbourOutdoors)) {
               neighboursHaveChanged = true;
               visited.add(neighbourId); // Its been deleted, so don't try visit it
             }
+            console.timeEnd("Replace Node")
           } else {
             if (is_current_deleted) continue;
             is_current_deleted = true;
@@ -224,7 +236,9 @@ async function useGreedyTripleRingStrategy(
         if (!checkedNeighbours.has(neighbour.keyframe_id)) addToStack(neighbour.keyframe_id)
       }
       console.log("Deleteing current node:", currentKeyframeId)
+      console.time("Delete Node")
       await replaceNode(db, currentKeyframeId, currentPosition, false, isOutdoors);
+      console.timeEnd("Delete Node")
     }
   }
   console.log("Finished in:", new Date().getTime() - startTime)
@@ -261,7 +275,7 @@ async function copyDenseToRefined(db: any) {
 // Main function to prune nodes
 async function prune() {
   // await createTables(db);
-  await copyDenseToRefined(db);
+  // await copyDenseToRefined(db);
   console.log("Copied across nodes, edges and node_locations");
   try {
     // await db.query("BEGIN");
