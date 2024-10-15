@@ -1,12 +1,12 @@
 import { Request, Response } from 'express'
-import { COORDS_TO_METRES } from './consts';
+import { COORDS_TO_METRES, NEIGHBOURS_INCLUDES_PROXIMITY } from './consts';
 import db from './db';
 
 export async function searchNeighbour(is_refined: boolean, mainPointId: number, distanceThreshold: number, yDistThresh: number, currentPoint: { x_trans: any; y_trans: any; z_trans: any; }) {
   // Used BFS to find all points down the graph within a range
   const minDepth = 2; // case for when point distances are too large to give decent # of options
   const maxDepth = 5;
-  const usePhysicalProximity = true;
+  const usePhysicalProximity = NEIGHBOURS_INCLUDES_PROXIMITY ?? true;
 
   const getDistance = (x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) => {
     return [Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(z2 - z1, 2)), Math.abs(y2 - y1)];
