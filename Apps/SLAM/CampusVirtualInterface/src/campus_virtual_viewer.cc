@@ -1,9 +1,11 @@
-#include "campus_virtual_socket_publisher/publisher.h"
-
 #include "stella_vslam/system.h"
 #include "stella_vslam/config.h"
 #include "stella_vslam/camera/base.h"
 #include "stella_vslam/util/yaml.h"
+
+#ifdef HAVE_IRIDESCENCE_VIEWER
+#include "iridescence_viewer/viewer.h"
+#endif
 
 #include <iostream>
 #include <chrono>
@@ -34,21 +36,59 @@ int send_map_to_socket(const std::shared_ptr<stella_vslam::system>& slam,
 
     // create a viewer object
     // and pass the frame_publisher and the map_publisher
-    std::shared_ptr<campus_virtual_socket_publisher::publisher> publisher;
-    publisher = std::make_shared<campus_virtual_socket_publisher::publisher>(
-    stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "SocketPublisher"),
-    slam,
-    slam->get_frame_publisher(),
-    slam->get_map_publisher());
+    // std::shared_ptr<campus_virtual_socket_publisher::publisher> publisher;
+    // publisher = std::make_shared<campus_virtual_socket_publisher::publisher>(
+    // stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "SocketPublisher"),
+    // slam,
+    // slam->get_frame_publisher(),
+    // slam->get_map_publisher());
+#ifdef HAVE_IRIDESCENCE_VIEWER
 
-    std::cout << "Starting the publisher..." << std::endl;
-    
-    publisher->run();
+    std::shared_ptr<iridescence_viewer::viewer> iridescence_viewer;
+    iridescence_viewer = std::make_shared<iridescence_viewer::viewer>(
+            stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "IridescenceViewer"),
+            slam->get_frame_publisher(),
+            slam->get_map_publisher());
 
-    std::cout << "Publisher finished - Shutting down..." << std::endl;
+#endif
+
+    std::cout << "Starting editing session:" << std::endl;
+    slam->enable_loop_detector();
+
+    std::thread thread([&]() {
+    int input1;
+    int input2;
+    std::cout << "Keyframe ID to loop closure (0 to exit):";
+    std::cin >> input1;
+    std::cout << "ID 2:";
+    std::cin >> input2;
+    while (input1 > 0 && input2 > 0){
+        bool success = slam->request_loop_closure(input1, input2);
+        std::cout << "Loop closure was: " << (success ? "SUCCESS" : "FAILED - Please wait for a previous loop closure to finish") << std::endl;
+
+        std::cout << "Keyframe ID to loop closure (0 to exit):";
+        std::cin >> input1;
+        std::cout << "ID 2:";
+        std::cin >> input2;
+    }
+    });
+
+#ifdef HAVE_IRIDESCENCE_VIEWER
+        iridescence_viewer->run();
+#endif
+
+    thread.join();
+
+    std::cout << "Editing finished - Shutting down..." << std::endl;
 
     // shutdown the slam process
     slam->shutdown();
+
+    if (!map_db_path.empty()) {
+        if (!slam->save_map_database(map_db_path)) {
+            return EXIT_FAILURE;
+        }
+    }
 
     return 0;
 }
