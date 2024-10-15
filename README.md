@@ -28,11 +28,17 @@ Super important that you do it _recursive_, as we have submodules that need clon
 - Convert your `.insv` and `.insp` files and associated JSON files (they are just copied across, so you can do that manually) with the FileProcessing tool to mp4s and images (use `run.sh`)
 - Run the Apps/GraphPruner with `npm run start`, this is **REQUIRED** before running the authoring interface and campusvirtual-backend parts
 - To view the raw full graph and open the Apps/PgSocketViewer in a separate terminal and run `node app.js`
-- To use the Authoring interface, in campusvirtual-backend consts.ts and set ENABLE_AUTHORING_PAGE to 'true', then 'npm run build' in the Apps/authoring directory.
+- To use the (optional - you can skip if you don't want a minimap, or to do any refinement) Authoring interface, in campusvirtual-backend consts.ts and set ENABLE_AUTHORING_PAGE to 'true', then 'npm run build' in the Apps/authoring directory.
 - To view the polished interface, open Apps/campusvirtual-backend and run `npm run start` and visit `localhost:3001` (and `localhost:3001/authoring` for the author page)
 - Modify `RUNME.sh` to run the controller on the videos you want, or just manually run the `g++ ./runCampusVirtual.cc -o runCampusVirtual -lboost_program_options` to build and then use as desired.
 
 e.g. `./runCampusVirtual <view SLAM headless/without a viewer (true|false)> ./ <video1.mp4,video2.mp4,video3.mp4> --out <test.db> --media_dir <absolute path to dir of Video/ e.g. /campusvirtua/Video> --map_dir <abs path of Map/> --json_dir <absolute path to JSON/ e.g. /campusvirtual/JSON/> --picture-dir <abs path to save 360 keyframe images to>`
+
+## Optional Further Steps
+
+If you would like to blur faces, I suggest using a library like:
+https://github.com/thaytan/blur360
+It is slow, and intensive, however, will likely help
 
 # Modules
 
