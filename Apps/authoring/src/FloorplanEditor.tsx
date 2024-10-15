@@ -294,6 +294,31 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
     forceUpdate()
   }
 
+  const rotatePointsByAngle = (
+    angle: number,
+    oX: number,
+    oY: number,
+    onlySelected = false
+  ) => {
+    const newNodes = nodes.map((node) => {
+      if (onlySelected && !selectedPoints.has(node.id)) return node
+
+      const radians = angle * (Math.PI / 180) // Convert angle to radians
+      const cosTheta = Math.cos(radians)
+      const sinTheta = Math.sin(radians)
+
+      const x = node.x - oX
+      const y = node.y - oY
+
+      node.x = padCordAwayFromEdge(x * cosTheta - y * sinTheta + oX)
+      node.y = padCordAwayFromEdge(x * sinTheta + y * cosTheta + oY)
+      return node
+    })
+    setNodes(newNodes)
+    updateAllPoints(newNodes)
+    forceUpdate()
+  }
+
   return (
     <>
       <div>
@@ -303,24 +328,58 @@ const FloorplanEditor: React.FC<FloorplanEditorProps> = ({ floorplan }) => {
             <button onClick={() => rotatePoints()}>
               Rotate All Points 90 Degrees
             </button>
-            <button onClick={() => flipPointsVertically()}>
-              Flip All Points Vertically
+            <button
+              className="bg-blue-600"
+              onClick={() => rotatePointsByAngle(5, 0.5, 0.5)}
+            >
+              Rotate All CW 10 Degrees
             </button>
-            <button onClick={() => flipPointsHorizontally()}>
+            <button
+              className="bg-blue-600"
+              onClick={() => rotatePointsByAngle(-5, 0.5, 0.5)}
+            >
+              Rotate All CCW 10 Degrees
+            </button>
+
+            <button
+              className="bg-orange-600"
+              onClick={() => flipPointsHorizontally()}
+            >
               Flip All Points Horizontally
             </button>
-            <button onClick={() => rescalePoints(0.9)}>Scale Down</button>
-            <button onClick={() => rescalePoints(1.1)}>Scale Up</button>
-            <button onClick={() => rescaleX(0.9)}>Scale X Down</button>
-            <button onClick={() => rescaleX(1.1)}>Scale X UP</button>
-            <button onClick={() => rescaleY(1.1)}>Scale Y UP</button>
-            <button onClick={() => rescaleY(0.9)}>Scale Y Down</button>
+            <button
+              className="bg-orange-600"
+              onClick={() => flipPointsVertically()}
+            >
+              Flip All Points Vertically
+            </button>
 
-            <button onClick={() => moveX(0.01)}>Move Right</button>
+            <button className="bg-green-600" onClick={() => rescalePoints(1.1)}>
+              Scale Up
+            </button>
+            <button className="bg-red-600" onClick={() => rescalePoints(0.9)}>
+              Scale Down
+            </button>
+
+            <button className="bg-green-600" onClick={() => rescaleX(1.1)}>
+              Scale X UP
+            </button>
+            <button className="bg-red-600" onClick={() => rescaleX(0.9)}>
+              Scale X Down
+            </button>
+
+            <button className="bg-green-600" onClick={() => rescaleY(1.1)}>
+              Scale Y UP
+            </button>
+            <button className="bg-red-600" onClick={() => rescaleY(0.9)}>
+              Scale Y Down
+            </button>
+
             <button onClick={() => moveX(-0.01)}>Move Left</button>
+            <button onClick={() => moveX(0.01)}>Move Right</button>
 
             <button onClick={() => moveY(-0.01)}>Move Up</button>
-            <button onClick={() => moveY(0.01)}>Move Y Down</button>
+            <button onClick={() => moveY(0.01)}>Move Down</button>
           </div>
           <div>
             <button onClick={() => rotatePoints(true)}>
