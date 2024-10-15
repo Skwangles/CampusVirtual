@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import './Instructions.css'
+import { Info } from 'react-feather'
 // Type definitions
 interface InstructionsProps {
   point: { keyframe_id: number; location: string; ts: string }
@@ -8,9 +9,9 @@ interface InstructionsProps {
 const Instructions: React.FC<InstructionsProps> = ({ point }) => {
   const [isOpen, setIsOpen] = useState(false)
   return (
-    <div className="stats-container">
+    <div className="stats-container flex flex-col items-center align-center justify-center">
       <button className="stat-drawer-toggle" onClick={() => setIsOpen(!isOpen)}>
-        {isOpen ? 'Hide How To Use' : 'How To Use'}
+        <Info /> {isOpen ? 'Hide' : ''}
       </button>
 
       {isOpen && (

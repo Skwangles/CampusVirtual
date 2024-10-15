@@ -51,6 +51,7 @@ interface NeighbourData {
 
 import { useGLTF } from '@react-three/drei'
 import { GLTF } from 'three-stdlib'
+import { MapPin } from 'react-feather'
 
 type GLTFResult = GLTF & {
   nodes: {
@@ -503,6 +504,7 @@ const VirtualTour: React.FC = () => {
   return (
     <>
       <div
+        className="w-fit flex flex-row justify-center items-center"
         style={{
           background: '#101010F0',
           color: 'white',
@@ -511,11 +513,12 @@ const VirtualTour: React.FC = () => {
           bottom: 0,
           zIndex: 999,
           fontSize: '2rem',
-          padding: '5px',
+          padding: '10px',
           borderRadius: '10px',
         }}
       >
-        Location: {currentPoint.location}
+        <MapPin className="mr-1" />
+        You are in: {currentPoint.location}
       </div>
       <Instructions point={currentPoint} />
       {showMap && (

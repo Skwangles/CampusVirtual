@@ -13,7 +13,7 @@ const db = new Pool(dbConfig)
 
 const count = 5;
 
-const directory = "/media/skwangles/KINGSTON/MEDIA/blurredPhotos/"
+const directory = "/media/skwangles/KINGSTON/MEDIA/eds-pictures/"
 const output = "/media/skwangles/KINGSTON/MEDIA/EDS-Images/"
 
 async function copyFileIfExists(file) {

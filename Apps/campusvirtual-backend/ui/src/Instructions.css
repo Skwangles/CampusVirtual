@@ -5,13 +5,10 @@
   bottom: 0;
   right: 0;
   z-index: 999;
-  flex-direction: column;
-  display: flex;
-  align-items: center;
 }
 
 .stat-drawer-toggle {
-  background-color: #717274;
+  background-color: #4970be;
   color: white;
   border: none;
   padding: 10px;

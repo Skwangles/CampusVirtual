@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Stage, Image as KonvaImage, Line, Circle, Layer } from 'react-konva'
+import { Map as FeatherMap } from 'react-feather'
 import {
   API_PREFIX,
   HIDE_EDGES,
@@ -118,12 +119,14 @@ const Map: React.FC<MinimapProps> = ({
       }}
     >
       <button
+        className="flex flex-col items-center"
         style={{ zIndex: 999, padding: '5px', margin: '5px' }}
         onClick={() => {
           setCloseDrawer(!closeDrawer)
         }}
       >
-        Toggle Map
+        <FeatherMap />
+        Toggle
       </button>
       <div style={{ backgroundColor: 'lightgray' }} className="minimap-wrapper">
         {closeDrawer && hasImage && (

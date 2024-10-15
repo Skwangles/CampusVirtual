@@ -2,6 +2,7 @@
 import React, { useState, ChangeEvent, MouseEvent } from 'react'
 import './SearchBar.css'
 import { toast } from 'react-toastify'
+import { ArrowUpRight, Eye } from 'react-feather'
 // Define the type for the props
 interface SearchBarProps {
   data: string[]
@@ -50,7 +51,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
   return (
     <div
-      className="search-bar"
+      className="search-bar flex flex-row"
       onMouseEnter={() =>
         suggestions.length === 0 && query.length === 0
           ? setSuggestions(data.sort())
@@ -89,7 +90,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
       )}
       <button
         id="highlight-button"
-        className="go-button"
+        className="go-button flex flex-row items-center"
         onClick={() => {
           const searchFor = IncludesValue(data, query)
           if (searchFor) highlightCallback(searchFor)
@@ -97,11 +98,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
         }}
         disabled={isDisabled}
       >
-        Highlight Path
+        <Eye className="mr-2" />
+        Guide Me
       </button>
       <button
         id="goTo-button"
-        className="go-button"
+        className="go-button flex flex-row items-center"
         onClick={() => {
           const searchFor = IncludesValue(data, query)
           if (searchFor) jumpToCallback(searchFor)
@@ -109,6 +111,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         }}
         disabled={isDisabled}
       >
+        <ArrowUpRight className="mr-2" />
         Go To
       </button>
     </div>
