@@ -10,8 +10,9 @@ import { stripDirectoryTraversal } from './utils'
 const app = Router();
 
 if (ENABLE_AUTHORING_PAGE) {
-  app.use(bodyParser.urlencoded({ extended: false }))
-  app.use(bodyParser.json())
+  app.use(bodyParser.urlencoded({ extended: false, limit: '50mb' }))
+
+  app.use(bodyParser.json({ limit: '50mb' }))
   app.use(express.static(path.join(__dirname, '../../authoring/dist')))
 
   app.get('/authoring', function (req, res) {
