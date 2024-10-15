@@ -4,7 +4,7 @@ const path = require("path");
 const cors = require("cors");
 
 const db = require("./db.js")
-const useRefined = false;
+const useRefined = true;
 const picturesDir = "/home/skwangles/Documents/Honours/CampusVirtual/pictures";
 
 let express = require("express");
