@@ -17,6 +17,10 @@ export const addQuotationMarks = false;
 export const MAX_MAP_HEIGHT_PERCENT = 0.7
 export const PROJECT_NAME = "CampusVirtual"
 
+
+export const OUTDOORS_LOCATION = "outdoors"
+export const WAIKATO_UNI_LEVELS_ORDER = ["B", "G", "0", "1", "2", "3"];
+
 export const HOTSPOT_COLOUR = '#E1251B'
 export const HOTSPOT_OUTLINE = '#FFFFFF'
 export const HOTSPOT_HIGHLIGHTED = '#0000FF'

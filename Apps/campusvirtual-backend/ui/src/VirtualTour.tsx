@@ -5,8 +5,10 @@ import {
   HOTSPOT_COLOUR,
   HOTSPOT_HIGHLIGHTED,
   HOTSPOT_OUTLINE,
+  OUTDOORS_LOCATION,
   SHOW_NAV_SEARCH,
   USE_GLB_MARKER_OBJECT,
+  WAIKATO_UNI_LEVELS_ORDER,
 } from './consts'
 // import { OrbitControls } from '@react-three/drei';
 import { API_PREFIX, showMap, COORDS_TO_METRES, PROJECT_NAME } from './consts'
@@ -51,7 +53,7 @@ interface NeighbourData {
 
 import { useGLTF } from '@react-three/drei'
 import { GLTF } from 'three-stdlib'
-import { MapPin } from 'react-feather'
+import { ArrowDown, ArrowUp, MapPin, Sun } from 'react-feather'
 
 type GLTFResult = GLTF & {
   nodes: {
@@ -501,6 +503,52 @@ const VirtualTour: React.FC = () => {
     }
   }, [currentId])
 
+  
+  const getFloorUpOrDown = (floor: string, isUp = true) => {
+    if (!floor.includes("."))
+      return false;
+    const splitName = floor.split(".")
+    if (splitName.length == 0 || splitName.length > 2){
+      return false;
+    }
+
+    let idx = WAIKATO_UNI_LEVELS_ORDER.indexOf(splitName[1])
+    if (isUp){
+      idx += 1
+      while (idx < WAIKATO_UNI_LEVELS_ORDER.length) 
+      {
+        if (allFloorNames.includes(splitName[0] + "." + WAIKATO_UNI_LEVELS_ORDER[idx])){
+          return splitName[0] + "." + WAIKATO_UNI_LEVELS_ORDER[idx];
+        }
+        idx += 1
+      }
+    }
+    else {
+      idx -= 1
+      while (idx >= 0) {
+        if (allFloorNames.includes(splitName[0] + "." + WAIKATO_UNI_LEVELS_ORDER[idx])){
+          return splitName[0] + "." + WAIKATO_UNI_LEVELS_ORDER[idx];
+        }
+        idx -=1
+      }
+    }
+    return false;
+  }
+
+  const changeFloorUpOrDown = (floor: string, isUp: boolean) => {
+   const newFloor = getFloorUpOrDown(floor, isUp);
+   if (!newFloor){
+    toast.warn("Cannot change floor - No floor is " + (isUp ? "above":"below"))
+    return
+   }
+
+   if (allFloorNames.includes(newFloor)){
+    console.log("Setting location to", newFloor)
+    changeFloor(newFloor)
+   }
+  }
+
+
   return (
     <>
       <div
@@ -521,7 +569,7 @@ const VirtualTour: React.FC = () => {
         You are in: {currentPoint.location}
       </div>
       <Instructions point={currentPoint} />
-      {showMap && (
+       {showMap && (
         <Map
           floorName={locationGroup}
           setID={setCurrentId}
@@ -529,6 +577,7 @@ const VirtualTour: React.FC = () => {
           highlightedPath={highlightedPath}
         />
       )}
+      
       {SHOW_NAV_SEARCH && allFloorNames.length > 0 && (
         <>
           <SearchBar
@@ -536,14 +585,15 @@ const VirtualTour: React.FC = () => {
             highlightCallback={calculateHighlightedPath}
             jumpToCallback={changeFloor}
           />
+          <div className='fixed right-0 top-0 flex flex-col z-50'>
+            <button className='w-18 bg-green-600' disabled={!getFloorUpOrDown(locationGroup, true)} onClick={() => changeFloorUpOrDown(locationGroup, true)}><ArrowUp/> Floor</button>
+            <button className='w-18 bg-green-600' disabled={!getFloorUpOrDown(locationGroup, false)} onClick={() => changeFloorUpOrDown(locationGroup, false)} ><ArrowDown/> Floor</button>
+            <button className='w-18 bg-green-600' disabled={!allFloorNames.includes(OUTDOORS_LOCATION)} onClick={() => changeFloor(OUTDOORS_LOCATION)}><Sun /> Go Outdoors</button>
           {highlightedPath.length > 0 && (
             <button
+              className='bg-gray-600 z-50'
               style={{
-                top: 0,
-                right: 0,
-                position: 'fixed',
-                zIndex: 999,
-                background: '#4d4c4c',
+                // background: '#4d4c4c',
                 color: 'white',
               }}
               onClick={() => setHighlightedPath([])}
@@ -551,6 +601,7 @@ const VirtualTour: React.FC = () => {
               Clear Highlight
             </button>
           )}
+          </div>
         </>
       )}
 
