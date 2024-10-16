@@ -535,6 +535,14 @@ const VirtualTour: React.FC = () => {
     return false;
   }
 
+  const [canGoUp, setCanGoUp] = useState(false);
+  const [canGoDown, setCanGoDown] = useState(false);
+
+  useEffect(() =>{
+    setCanGoUp(!getFloorUpOrDown(locationGroup, true))
+    setCanGoDown(!getFloorUpOrDown(locationGroup, false))
+  }, [locationGroup])
+
   const changeFloorUpOrDown = (floor: string, isUp: boolean) => {
    const newFloor = getFloorUpOrDown(floor, isUp);
    if (!newFloor){
@@ -586,8 +594,8 @@ const VirtualTour: React.FC = () => {
             jumpToCallback={changeFloor}
           />
           <div className='fixed right-0 top-0 flex flex-col z-50'>
-            <button className='w-18 bg-green-600' disabled={!getFloorUpOrDown(locationGroup, true)} onClick={() => changeFloorUpOrDown(locationGroup, true)}><ArrowUp/> Floor</button>
-            <button className='w-18 bg-green-600' disabled={!getFloorUpOrDown(locationGroup, false)} onClick={() => changeFloorUpOrDown(locationGroup, false)} ><ArrowDown/> Floor</button>
+            <button className='w-18 bg-green-600' disabled={!canGoUp} onClick={() => changeFloorUpOrDown(locationGroup, true)}><ArrowUp/> Floor</button>
+            <button className='w-18 bg-green-600' disabled={!canGoDown} onClick={() => changeFloorUpOrDown(locationGroup, false)} ><ArrowDown/> Floor</button>
             <button className='w-18 bg-green-600' disabled={!allFloorNames.includes(OUTDOORS_LOCATION)} onClick={() => changeFloor(OUTDOORS_LOCATION)}><Sun /> Go Outdoors</button>
           {highlightedPath.length > 0 && (
             <button
