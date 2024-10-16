@@ -386,10 +386,10 @@ const VirtualTour: React.FC = () => {
     keyframe_id: 300,
     location: '',
   })
+
   const [floorWideNeighbours, setFloorWideNeighbours] = useState<any[]>([])
   const [locationGroup, setLocationGroup] = useState<string>('')
   const [highlightedPath, setHighlightedPath] = useState<number[]>([])
-
   const [allFloorNames, setAllFloorNames] = useState<string[]>([])
 
   const [camRotation, setCameraRotation] = useState<any>(() => {
@@ -429,7 +429,7 @@ const VirtualTour: React.FC = () => {
     })
 
     if (currentId == '-1' || (params.has('id') && params.get('id') != '-1')) {
-      changeFloor('G.G')
+      changeFloor('FG.G')
     }
   }, [])
 
