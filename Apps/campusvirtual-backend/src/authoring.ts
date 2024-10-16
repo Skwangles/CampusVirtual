@@ -6,7 +6,6 @@ import bodyParser from 'body-parser'
 import fs from 'fs'
 import { disconnectNodes, connectNodes, replaceNode } from './utils'
 import { SEND_TEST_IMAGE, FLOORPLAN_IMAGE_DIR, KEYFRAME_IMG_DIR, KEYFRAME_IMG_EXTENSION, ENABLE_AUTHORING_PAGE } from './consts'
-import { stripDirectoryTraversal } from './utils'
 const app = Router();
 
 if (ENABLE_AUTHORING_PAGE) {
@@ -153,7 +152,7 @@ app.get('/api/floorplans/:name/image', async function (req: { params: { name: st
   }
 
 
-  const pathString = stripDirectoryTraversal(path.join(FLOORPLAN_IMAGE_DIR, String(result.rows[0].path)), FLOORPLAN_IMAGE_DIR);
+  const pathString = path.join(FLOORPLAN_IMAGE_DIR, String(result.rows[0].path));
   if (!pathString) {
     res.sendStatus(404); // Potential directory traversal attack found
     return;
@@ -207,7 +206,7 @@ app.get('/api/image/:id', async function (req: { params: { id: number } }, res) 
     console.log("Sending Test")
     return;
   }
-  const pathString = stripDirectoryTraversal(path.join(KEYFRAME_IMG_DIR, Number(ts).toFixed(5).toString() + KEYFRAME_IMG_EXTENSION), KEYFRAME_IMG_DIR);
+  const pathString = path.join(KEYFRAME_IMG_DIR, Number(ts).toFixed(5).toString() + KEYFRAME_IMG_EXTENSION);
   if (!pathString) {
     res.sendStatus(404);
     return; // Potential directory traversal attack
