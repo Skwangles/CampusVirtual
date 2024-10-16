@@ -1,9 +1,9 @@
 .stats-container {
   margin-right: 5px;
   margin-bottom: 5px;
-  position: fixed;
+  /* position: fixed;
   bottom: 0;
-  right: 0;
+  right: 0; */
   z-index: 999;
 }
 
@@ -15,7 +15,7 @@
   border-radius: 4px;
   cursor: pointer;
   z-index: 1001; /* Ensure it's above the floor list */
-  margin-bottom: 5px;
+  margin-bottom: 3px;
 }
 
 .stats {
