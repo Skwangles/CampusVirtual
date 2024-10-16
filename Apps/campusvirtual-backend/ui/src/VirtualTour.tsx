@@ -539,8 +539,8 @@ const VirtualTour: React.FC = () => {
   const [canGoDown, setCanGoDown] = useState(false);
 
   useEffect(() =>{
-    setCanGoUp(!getFloorUpOrDown(locationGroup, true))
-    setCanGoDown(!getFloorUpOrDown(locationGroup, false))
+    setCanGoUp(!!getFloorUpOrDown(locationGroup, true))
+    setCanGoDown(!!getFloorUpOrDown(locationGroup, false))
   }, [locationGroup])
 
   const changeFloorUpOrDown = (floor: string, isUp: boolean) => {
