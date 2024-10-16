@@ -51,7 +51,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
   return (
     <div
-      className="search-bar flex flex-row"
+      className="search-bar flex flex-row flex-wrap"
       onMouseEnter={() =>
         suggestions.length === 0 && query.length === 0
           ? setSuggestions(data.sort())
